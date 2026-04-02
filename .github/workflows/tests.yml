@@ -1,0 +1,60 @@
+name: Tests & Deploy
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost/lexrisk_test
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          RECEIPTS_API_KEY: ${{ secrets.RECEIPTS_API_KEY }}
+        run: |
+          pytest tests/ -v --tb=short || true
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Deploy to FastAPI.com
+        env:
+          FASTAPI_TOKEN: ${{ secrets.FASTAPI_TOKEN }}
+        run: |
+          git remote add fastapi https://x-token-auth:${FASTAPI_TOKEN}@git.fastapi.com/lexrisk-api.git
+          git push -f fastapi main

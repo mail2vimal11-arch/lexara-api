@@ -1,0 +1,51 @@
+"""Application configuration and settings."""
+
+from pydantic_settings import BaseSettings
+from typing import Optional
+
+
+class Settings(BaseSettings):
+    """Application settings from environment variables."""
+    
+    # App
+    app_name: str = "LexRisk API"
+    version: str = "1.0.0"
+    debug: bool = False
+    environment: str = "production"
+    secret_key: str = "change-me-in-production"
+    port: int = 8000
+    log_level: str = "INFO"
+    
+    # Database
+    database_url: str = "postgresql://localhost/lexrisk"
+    
+    # Redis
+    redis_url: str = "redis://localhost:6379/0"
+    
+    # API Keys
+    claude_api_key: str
+    receipts_api_key: str
+    stripe_secret_key: str
+    stripe_publishable_key: str
+    stripe_webhook_secret: str
+    
+    # CORS
+    allowed_origins: str = "http://localhost:3000,https://lexrisk.com"
+    
+    # Email
+    smtp_server: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
+    
+    # Feature flags
+    enable_async_processing: bool = True
+    enable_caching: bool = True
+    enable_webhooks: bool = True
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+
+
+settings = Settings()

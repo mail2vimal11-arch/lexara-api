@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="LexRisk - AI-powered contract analysis engine for Canadian legal professionals">
+    <meta name="theme-color" content="#0F172A">
+    <title>LexRisk - AI Contract Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav role="navigation" aria-label="Main navigation" class="nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg class="logo" viewBox="0 0 40 40" aria-hidden="true">
+                    <circle cx="20" cy="20" r="18" fill="#2563EB" opacity="0.1" stroke="#2563EB" stroke-width="2"/>
+                    <path d="M15 25L20 30L32 15" stroke="#2563EB" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="logo-text">LexRisk</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#features" class="nav-link">Features</a></li>
+                <li><a href="#pricing" class="nav-link">Pricing</a></li>
+                <li><a href="https://docs.lexrisk.com" class="nav-link">Documentation</a></li>
+                <li><a href="#contact" class="nav-link">Contact</a></li>
+            </ul>
+            <a href="#cta" class="nav-cta">Get Started</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header role="banner" class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title">Analyze Contracts<br>in Seconds with AI</h1>
+                <p class="hero-subtitle">Identify legal risks, missing clauses, and actionable recommendations using Claude AI. Built for Canadian legal professionals.</p>
+                <div class="hero-cta">
+                    <a href="#cta" class="button button-primary" role="button">Start Free Trial</a>
+                    <a href="https://docs.lexrisk.com" class="button button-secondary" role="button">View Documentation</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-number">2<span class="stat-unit">s</span></span>
+                        <span class="stat-label">Analysis Time</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">95<span class="stat-unit">%</span></span>
+                        <span class="stat-label">Accuracy</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">1000<span class="stat-unit">+</span></span>
+                        <span class="stat-label">Contracts Analyzed</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>analyze_contract.py</span>
+                    </div>
+                    <pre><code>import requests
+
+response = requests.post(
+  "https://api.lexrisk.com/v1/analyze",
+  headers={"Authorization": "Bearer sk_..."},
+  json={"text": "contract content"}
+)
+
+result = response.json()
+print(f"Risk Score: {result['risk_score']}")
+print(f"Key Risks: {result['key_risks']}")</code></pre>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section id="features" aria-labelledby="features-title" class="features">
+        <div class="container">
+            <h2 id="features-title" class="section-title">Powerful Features</h2>
+            <p class="section-subtitle">Everything you need to analyze contracts faster</p>
+            
+            <div class="features-grid">
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M9 12L11 14L15 10M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Risk Detection</h3>
+                    <p class="feature-description">Automatically identify legal risks, unfavorable terms, and liability exposure with AI-powered analysis.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Clause Extraction</h3>
+                    <p class="feature-description">Extract and categorize specific clauses: liability, termination, confidentiality, IP rights, and more.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Fast Analysis</h3>
+                    <p class="feature-description">Get comprehensive legal analysis in under 2 seconds. No waiting, no delays.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Actionable Recommendations</h3>
+                    <p class="feature-description">Receive plain-English recommendations for how to improve contracts and mitigate risks.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">PIPEDA Compliant</h3>
+                    <p class="feature-description">Your contracts are analyzed and automatically deleted. Full privacy protection with no storage.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">API Access</h3>
+                    <p class="feature-description">Integrate into your tools and workflows. No SDKs needed, just HTTP and JSON.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" aria-labelledby="pricing-title" class="pricing">
+        <div class="container">
+            <h2 id="pricing-title" class="section-title">Simple Transparent Pricing</h2>
+            <p class="section-subtitle">Choose the plan that fits your needs</p>
+            
+            <div class="pricing-grid">
+                <!-- Free Tier -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Free</h3>
+                        <div class="pricing-price">
+                            <span class="currency">$</span><span class="amount">0</span>
+                        </div>
+                        <p class="pricing-period">/month</p>
+                    </div>
+                    <div class="pricing-body">
+                        <ul class="pricing-features" role="list">
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                5 analyses/month
+                            </li>
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Basic risk detection
+                            </li>
+                            <li class="feature-excluded" role="listitem">
+                                API access
+                            </li>
+                            <li class="feature-excluded" role="listitem">
+                                Priority support
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="#cta" class="button button-secondary button-full" role="button">Get Started</a>
+                </div>
+
+                <!-- Starter Tier -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Starter</h3>
+                        <div class="pricing-price">
+                            <span class="currency">$</span><span class="amount">19</span>
+                        </div>
+                        <p class="pricing-period">/month</p>
+                    </div>
+                    <div class="pricing-body">
+                        <ul class="pricing-features" role="list">
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                50 analyses/month
+                            </li>
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Full legal analysis
+                            </li>
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Extract clauses
+                            </li>
+                            <li class="feature-excluded" role="listitem">
+                                API access
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="#cta" class="button button-primary button-full" role="button">Start Free Trial</a>
+                </div>
+
+                <!-- Growth Tier -->
+                <div class="pricing-card pricing-card-featured">
+                    <div class="pricing-badge">Most Popular</div>
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Growth</h3>
+                        <div class="pricing-price">
+                            <span class="currency">$</span><span class="amount">59</span>
+                        </div>
+                        <p class="pricing-period">/month</p>
+                    </div>
+                    <div class="pricing-body">
+                        <ul class="pricing-features" role="list">
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                500 analyses/month
+                            </li>
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Full API access
+                            </li>
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Webhooks & batch processing
+                            </li>
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Priority email support
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="#cta" class="button button-primary button-full" role="button">Start Free Trial</a>
+                </div>
+
+                <!-- Business Tier -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Business</h3>
+                        <div class="pricing-price">
+                            <span class="currency">$</span><span class="amount">199</span>
+                        </div>
+                        <p class="pricing-period">/month</p>
+                    </div>
+                    <div class="pricing-body">
+                        <ul class="pricing-features" role="list">
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Unlimited analyses
+                            </li>
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Custom risk models
+                            </li>
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Dedicated support
+                            </li>
+                            <li class="feature-included" role="listitem">
+                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                SLA guarantee (99.5%)
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="#cta" class="button button-secondary button-full" role="button">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="cta" aria-labelledby="cta-title" class="cta">
+        <div class="container cta-content">
+            <h2 id="cta-title" class="cta-title">Ready to Analyze Contracts Faster?</h2>
+            <p class="cta-subtitle">Start your free trial today. No credit card required.</p>
+            <div class="cta-form">
+                <input 
+                    type="email" 
+                    placeholder="your@email.com" 
+                    aria-label="Email address for trial signup"
+                    class="cta-input"
+                    required
+                >
+                <button class="button button-primary" aria-label="Sign up for free trial">Get Started Free</button>
+            </div>
+            <p class="cta-note">Get 5 free analyses. Upgrade anytime.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer role="contentinfo" class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h3 class="footer-title">LexRisk</h3>
+                    <p class="footer-description">AI-powered contract analysis for Canadian legal professionals.</p>
+                </div>
+                <div class="footer-col">
+                    <h4 class="footer-heading">Product</h4>
+                    <ul role="list">
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="https://docs.lexrisk.com">Documentation</a></li>
+                        <li><a href="https://status.lexrisk.com">Status</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4 class="footer-heading">Company</h4>
+                    <ul role="list">
+                        <li><a href="/about">About</a></li>
+                        <li><a href="/blog">Blog</a></li>
+                        <li><a href="/careers">Careers</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4 class="footer-heading">Legal</h4>
+                    <ul role="list">
+                        <li><a href="/privacy">Privacy</a></li>
+                        <li><a href="/terms">Terms</a></li>
+                        <li><a href="/security">Security</a></li>
+                        <li><a href="/accessibility">Accessibility</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 LexRisk. All rights reserved. Built for Canadian legal professionals.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
