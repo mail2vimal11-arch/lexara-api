@@ -1,10 +1,10 @@
-# LexRisk API — AI-Powered Contract Analysis Engine
+# LexAra — AI-Powered Contract Analysis Engine
 
 Analyze contracts instantly with Claude AI. Extract risks, missing clauses, and actionable recommendations—built for startups, lawyers, and small businesses in Canada.
 
-**Live:** [lexrisk.com](https://lexrisk.com)  
-**API Docs:** [api.lexrisk.com/docs](https://api.lexrisk.com/docs)  
-**Status:** [status.lexrisk.com](https://status.lexrisk.com)
+**Live:** [lexara.tech](https://lexara.tech)  
+**API Docs:** [api.lexara.tech/docs](https://api.lexara.tech/docs)  
+**Status:** [status.lexara.tech](https://status.lexara.tech)
 
 ---
 

@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     """Application settings from environment variables."""
     
     # App
-    app_name: str = "LexRisk API"
+    app_name: str = "LexAra API"
     version: str = "1.0.0"
     debug: bool = False
     environment: str = "production"
