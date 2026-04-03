@@ -70,7 +70,7 @@ async def analyze_with_claude(
                 },
                 json={
                     "model": "claude-haiku-4-5",
-                    "max_tokens": 4096,
+                    "max_tokens": 8096,
                     "system": LEGAL_ANALYSIS_SYSTEM_PROMPT,
                     "messages": [
                         {
@@ -109,10 +109,16 @@ async def analyze_with_claude(
 
                 analysis = json.loads(json_str)
 
-                # Normalize key_risks format
-                if "key_risks" in analysis and isinstance(analysis["key_risks"], list):
+                # Normalize key_risks format (list or dict)
+                raw_risks = analysis.get("key_risks", [])
+                if isinstance(raw_risks, dict):
+                    raw_risks = [
+                        {"title": k, **v} if isinstance(v, dict) else {"title": k, "description": str(v), "severity": "medium"}
+                        for k, v in raw_risks.items()
+                    ]
+                if isinstance(raw_risks, list):
                     normalized = []
-                    for r in analysis["key_risks"]:
+                    for r in raw_risks:
                         if isinstance(r, dict):
                             normalized.append({
                                 "severity": r.get("severity", "medium"),
