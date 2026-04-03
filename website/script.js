@@ -109,7 +109,7 @@ async function runAnalysis(tab, payload) {
   const panel = document.getElementById(`tab-${tab}`);
   panel.innerHTML = `<div class="loading-state" role="status" aria-live="polite">
     <div class="spinner" aria-hidden="true"></div>
-    <span>Analyzing with Claude AI…</span>
+    <span>Analyzing contract…</span>
   </div>`;
 
   try {
