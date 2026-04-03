@@ -8,7 +8,7 @@ import logging
 
 from app.config import settings
 from app.database.session import init_db
-from app.routers import contracts, usage, health
+from app.routers import contracts, usage, health, upload
 from app.middleware.auth import APIKeyMiddleware
 from app.middleware.logging import LoggingMiddleware
 
@@ -57,6 +57,7 @@ app.add_middleware(APIKeyMiddleware)
 # Include Routers
 app.include_router(health.router, tags=["Health"])
 app.include_router(contracts.router, prefix="/v1", tags=["Contracts"])
+app.include_router(upload.router, prefix="/v1", tags=["Upload"])
 app.include_router(usage.router, prefix="/v1", tags=["Usage"])
 
 # Global Exception Handler

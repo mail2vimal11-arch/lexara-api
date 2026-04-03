@@ -285,6 +285,73 @@ if (ctaForm) {
   });
 }
 
+/* ── File Upload ───────────────────────────────────────────── */
+const uploadZone = document.getElementById('upload-zone');
+const fileInput  = document.getElementById('file-input');
+
+if (uploadZone && fileInput) {
+  // Drag-over highlight
+  uploadZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+  });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    const file = e.dataTransfer?.files?.[0];
+    if (file) handleFileUpload(file);
+  });
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files?.[0];
+    if (file) handleFileUpload(file);
+  });
+
+  // Keyboard accessibility
+  uploadZone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+}
+
+async function handleFileUpload(file) {
+  const label = uploadZone.querySelector('.upload-label');
+  const originalLabel = label.innerHTML;
+
+  // Show loading state
+  label.innerHTML = `<span style="color:var(--gold)">Extracting text from ${escHtml(file.name)}…</span>`;
+  uploadZone.classList.remove('upload-success');
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch(`${API_BASE}/upload`, {
+      method: 'POST',
+      headers: { 'Authorization': API_KEY },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Upload failed (HTTP ${res.status})`);
+    }
+
+    const data = await res.json();
+    textarea.value = data.text;
+    uploadZone.classList.add('upload-success');
+    label.innerHTML = `<strong style="color:var(--low)">✓ ${escHtml(file.name)}</strong> — ${data.word_count.toLocaleString()} words extracted`;
+    showToast(`File loaded — ${data.word_count.toLocaleString()} words ready to analyze`);
+
+  } catch (err) {
+    label.innerHTML = originalLabel;
+    showToast(err.message || 'Upload failed. Please try again.', 'warn');
+  }
+
+  // Reset input so same file can be re-uploaded
+  fileInput.value = '';
+}
+
 /* ── Sample contract for quick testing ───────────────────── */
 const SAMPLE = `This Service Agreement is entered into as of January 1, 2026 between LexCorp Inc. ("Service Provider") and Maple Ventures Ltd. ("Client").
 
