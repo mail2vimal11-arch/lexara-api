@@ -193,19 +193,22 @@ Return JSON:
 
 
 def _prompt_extract_clauses(text: str, contract_type: str, jurisdiction: str) -> str:
-    return f"""Extract and categorize the key clauses that ARE present in this contract.
+    return f"""You are a Canadian contract lawyer. Review this {contract_type} contract and suggest redline revisions for clauses rated high or medium risk under {jurisdiction} law.
 
 CONTRACT (first 6000 chars):
 {text[:6000]}
 
-Return JSON:
+Return JSON with up to 6 clause revisions:
 {{
   "clauses": [
     {{
-      "type": "liability|termination|confidentiality|indemnification|warranty|ip|payment|governing_law|dispute_resolution|other",
-      "section": "Section reference if available",
-      "summary": "One sentence summary of what this clause says",
-      "confidence": 0.0-1.0
+      "type": "liability|termination|ip|indemnification|warranty|confidentiality|payment|other",
+      "severity": "high|medium",
+      "original": "The exact problematic clause text (or summary if long)",
+      "revised": "Your suggested improved replacement clause language",
+      "rationale": "One sentence: why this revision protects the parties better under Ontario law"
     }}
   ]
-}}"""
+}}
+
+Only include clauses that are high or medium risk. Skip low risk or missing clauses (those are covered elsewhere)."""
