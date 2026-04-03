@@ -70,7 +70,7 @@ async def analyze_with_claude(
                 },
                 json={
                     "model": "claude-haiku-4-5",
-                    "max_tokens": 2000,
+                    "max_tokens": 4096,
                     "system": LEGAL_ANALYSIS_SYSTEM_PROMPT,
                     "messages": [
                         {
@@ -100,8 +100,39 @@ async def analyze_with_claude(
                     json_str = content.split("```")[1].split("```")[0].strip()
                 else:
                     json_str = content
-                
+
+                # Find JSON object boundaries if there's extra text
+                start = json_str.find("{")
+                end = json_str.rfind("}") + 1
+                if start != -1 and end > start:
+                    json_str = json_str[start:end]
+
                 analysis = json.loads(json_str)
+
+                # Normalize key_risks format
+                if "key_risks" in analysis and isinstance(analysis["key_risks"], list):
+                    normalized = []
+                    for r in analysis["key_risks"]:
+                        if isinstance(r, dict):
+                            normalized.append({
+                                "severity": r.get("severity", "medium"),
+                                "title": r.get("title", ""),
+                                "description": r.get("description", ""),
+                                "section": r.get("section"),
+                                "recommendation": r.get("recommendation"),
+                            })
+                    analysis["key_risks"] = normalized
+
+                # Normalize missing_clauses to list of strings
+                if "missing_clauses" in analysis and isinstance(analysis["missing_clauses"], list):
+                    normalized_mc = []
+                    for mc in analysis["missing_clauses"]:
+                        if isinstance(mc, dict):
+                            normalized_mc.append(mc.get("clause", str(mc)))
+                        else:
+                            normalized_mc.append(str(mc))
+                    analysis["missing_clauses"] = normalized_mc
+
             except json.JSONDecodeError:
                 logger.warning(f"Failed to parse Claude response as JSON: {content[:200]}")
                 analysis = {
