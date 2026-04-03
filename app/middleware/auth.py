@@ -23,8 +23,10 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         """Process request."""
 
-        # Always pass through OPTIONS (CORS preflight)
+        # Always pass through OPTIONS (CORS preflight) and Stripe webhook
         if request.method == "OPTIONS":
+            return await call_next(request)
+        if request.url.path in ("/v1/webhook", "/v1/webhooks/stripe"):
             return await call_next(request)
 
         # Skip auth for public routes

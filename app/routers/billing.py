@@ -120,6 +120,7 @@ async def create_portal(authorization: str = Header(None)):
     )
 
 
+@router.post("/webhooks/stripe")
 @router.post("/webhook")
 async def stripe_webhook(request: Request):
     """
