@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     stripe_secret_key: str
     stripe_publishable_key: str
     stripe_webhook_secret: str
+
+    # Stripe Price IDs
+    stripe_price_starter:  str = "price_1TI9WfPGiwBBvDi6P0GacboQ"
+    stripe_price_growth:   str = "price_1TI9WgPGiwBBvDi67TCKlqT5"
+    stripe_price_business: str = "price_1TI9WgPGiwBBvDi6CwOp0cAu"
     
     # CORS
     allowed_origins: str = "http://localhost:3000,https://lexrisk.com"

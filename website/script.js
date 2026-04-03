@@ -322,6 +322,84 @@ function showToast(msg, type = 'info') {
   setTimeout(() => t.remove(), 4000);
 }
 
+/* ── Stripe Checkout ───────────────────────────────────────── */
+document.querySelectorAll('.checkout-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const plan = btn.dataset.plan;
+
+    // Show email modal
+    const email = await promptEmail(`Enter your email to subscribe to the ${capitalize(plan)} plan:`);
+    if (!email) return;
+
+    const orig = btn.textContent;
+    btn.textContent = 'Redirecting to checkout…';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(`${API_BASE}/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': API_KEY },
+        body: JSON.stringify({ plan_id: plan, email }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Checkout failed');
+      }
+
+      const data = await res.json();
+      window.location.href = data.checkout_url;
+
+    } catch (err) {
+      showToast(err.message || 'Could not start checkout. Please try again.', 'warn');
+      btn.textContent = orig;
+      btn.disabled = false;
+    }
+  });
+});
+
+function promptEmail(message) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;`;
+    overlay.innerHTML = `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;max-width:420px;width:90%;box-shadow:var(--shadow-lg)">
+        <h3 style="font-family:var(--font-display);font-size:1.25rem;color:var(--text-primary);margin-bottom:8px">Subscribe to LexAra</h3>
+        <p style="font-size:.9375rem;color:var(--text-secondary);margin-bottom:20px">${escHtml(message)}</p>
+        <label for="modal-email" style="font-size:.875rem;color:var(--text-secondary);display:block;margin-bottom:6px">Email address</label>
+        <input id="modal-email" type="email" autocomplete="email" placeholder="your@email.com" style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:.9375rem;padding:10px 14px;margin-bottom:16px;box-sizing:border-box"/>
+        <div style="display:flex;gap:10px">
+          <button id="modal-confirm" class="btn btn-gold" style="flex:1">Continue to Checkout</button>
+          <button id="modal-cancel" class="btn btn-ghost">Cancel</button>
+        </div>
+        <p style="font-size:.75rem;color:var(--text-muted);margin-top:12px">You'll be redirected to Stripe's secure checkout. All prices in CAD.</p>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector('#modal-email');
+    input.focus();
+    overlay.querySelector('#modal-confirm').addEventListener('click', () => {
+      const val = input.value.trim();
+      if (!val || !val.includes('@')) { input.style.borderColor='var(--critical)'; return; }
+      document.body.removeChild(overlay);
+      resolve(val);
+    });
+    overlay.querySelector('#modal-cancel').addEventListener('click', () => { document.body.removeChild(overlay); resolve(null); });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') overlay.querySelector('#modal-confirm').click(); if (e.key === 'Escape') overlay.querySelector('#modal-cancel').click(); });
+  });
+}
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+/* ── Handle checkout return ────────────────────────────────── */
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('checkout') === 'success') {
+  showToast('🎉 Subscription activated! Welcome to LexAra.');
+  window.history.replaceState({}, '', '/');
+} else if (urlParams.get('checkout') === 'cancelled') {
+  showToast('Checkout cancelled — no charge was made.', 'warn');
+  window.history.replaceState({}, '', '/');
+}
+
 /* ── CTA Form ──────────────────────────────────────────────── */
 const ctaForm = document.querySelector('.cta-form');
 if (ctaForm) {
