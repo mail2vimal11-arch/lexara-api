@@ -1,376 +1,482 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="LexAra - AI-powered contract analysis engine for Canadian legal professionals">
-    <meta name="theme-color" content="#0F172A">
-    <title>LexAra - AI Contract Analysis</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LexAra — AI-powered contract analysis for Canadian legal professionals. Identify risks, missing clauses, and get actionable recommendations in seconds." />
+  <meta name="theme-color" content="#0A0A0B" />
+  <title>LexAra — AI Contract Analysis for Canadian Legal Professionals</title>
+
+  <!-- AODA/WCAG: Skip to main content -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Fonts: Inter (body) + Playfair Display (display) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <!-- Navigation -->
-    <nav role="navigation" aria-label="Main navigation" class="nav">
-        <div class="nav-container">
-            <div class="nav-brand">
-                <svg class="logo" viewBox="0 0 40 40" aria-hidden="true">
-                    <circle cx="20" cy="20" r="18" fill="#2563EB" opacity="0.1" stroke="#2563EB" stroke-width="2"/>
-                    <path d="M15 25L20 30L32 15" stroke="#2563EB" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="logo-text">LexAra</span>
+
+  <!-- ── Navigation ────────────────────────────────────────────── -->
+  <header class="nav" role="banner">
+    <div class="nav-inner">
+      <a href="/" class="brand" aria-label="LexAra home">
+        <svg class="brand-icon" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <rect width="36" height="36" rx="8" fill="url(#gold-grad)"/>
+          <path d="M11 26L18 10L25 26" stroke="#0A0A0B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13.5 21H22.5" stroke="#0A0A0B" stroke-width="2.5" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="gold-grad" x1="0" y1="0" x2="36" y2="36">
+              <stop offset="0%" stop-color="#D4AF37"/>
+              <stop offset="100%" stop-color="#B8960C"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="brand-name">LexAra</span>
+      </a>
+
+      <button class="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav id="nav-menu" aria-label="Main navigation">
+        <ul class="nav-links" role="list">
+          <li><a href="#features" class="nav-link">Features</a></li>
+          <li><a href="#demo" class="nav-link">Live Demo</a></li>
+          <li><a href="#pricing" class="nav-link">Pricing</a></li>
+          <li><a href="https://api.lexara.tech/docs" class="nav-link" target="_blank" rel="noopener">API Docs</a></li>
+        </ul>
+      </nav>
+
+      <a href="#cta" class="btn btn-gold nav-cta">Get Started</a>
+    </div>
+  </header>
+
+  <main id="main-content">
+
+    <!-- ── Hero ──────────────────────────────────────────────────── -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-bg" aria-hidden="true">
+        <div class="hero-grid"></div>
+        <div class="hero-glow"></div>
+      </div>
+      <div class="container hero-inner">
+        <div class="hero-content">
+          <div class="hero-badge" role="note">
+            <span class="badge-dot" aria-hidden="true"></span>
+            Trusted by Canadian Legal Teams
+          </div>
+          <h1 id="hero-title" class="hero-title">
+            Contract Intelligence<br/>
+            <span class="gradient-text">Built for Canadian Law</span>
+          </h1>
+          <p class="hero-subtitle">
+            Identify legal risks, missing clauses, and liability exposure in seconds.
+            AI-powered analysis trained on Ontario and federal contract law.
+          </p>
+          <div class="hero-actions">
+            <a href="#demo" class="btn btn-gold btn-lg">Try Live Demo</a>
+            <a href="https://api.lexara.tech/docs" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" width="18" height="18">
+                <path d="M10 2L2 6v8l8 4 8-4V6l-8-4z"/>
+              </svg>
+              View API Docs
+            </a>
+          </div>
+          <div class="hero-stats" role="list" aria-label="Key statistics">
+            <div class="stat" role="listitem">
+              <span class="stat-value">~2s</span>
+              <span class="stat-label">Per Analysis</span>
             </div>
-            <ul class="nav-links">
-                <li><a href="#features" class="nav-link">Features</a></li>
-                <li><a href="#pricing" class="nav-link">Pricing</a></li>
-                <li><a href="https://docs.lexrisk.com" class="nav-link">Documentation</a></li>
-                <li><a href="#contact" class="nav-link">Contact</a></li>
+            <div class="stat-divider" aria-hidden="true"></div>
+            <div class="stat" role="listitem">
+              <span class="stat-value">5</span>
+              <span class="stat-label">Analysis Tabs</span>
+            </div>
+            <div class="stat-divider" aria-hidden="true"></div>
+            <div class="stat" role="listitem">
+              <span class="stat-value">PIPEDA</span>
+              <span class="stat-label">Compliant</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="terminal">
+            <div class="terminal-bar">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+              <span class="terminal-title">lexara_analysis.json</span>
+            </div>
+            <pre class="terminal-body"><code><span class="t-key">"risk_level"</span><span class="t-colon">:</span> <span class="t-warn">"high"</span><span class="t-comma">,</span>
+<span class="t-key">"overall_risk_score"</span><span class="t-colon">:</span> <span class="t-num">62</span><span class="t-comma">,</span>
+<span class="t-key">"key_risks"</span><span class="t-colon">:</span> <span class="t-bracket">[</span>
+  <span class="t-brace">{</span>
+    <span class="t-key">"severity"</span><span class="t-colon">:</span> <span class="t-crit">"critical"</span><span class="t-comma">,</span>
+    <span class="t-key">"title"</span><span class="t-colon">:</span> <span class="t-str">"Ambiguous IP Ownership"</span><span class="t-comma">,</span>
+    <span class="t-key">"recommendation"</span><span class="t-colon">:</span>
+      <span class="t-str">"Define scope, carve-outs..."</span>
+  <span class="t-brace">}</span>
+<span class="t-bracket">]</span><span class="t-comma">,</span>
+<span class="t-key">"missing_clauses"</span><span class="t-colon">:</span> <span class="t-bracket">[</span>
+  <span class="t-str">"Limitation of Liability Cap"</span><span class="t-comma">,</span>
+  <span class="t-str">"Indemnification"</span><span class="t-comma">,</span>
+  <span class="t-str">"Force Majeure"</span>
+<span class="t-bracket">]</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Features ──────────────────────────────────────────────── -->
+    <section id="features" class="features" aria-labelledby="features-title">
+      <div class="container">
+        <div class="section-header">
+          <p class="section-eyebrow">Capabilities</p>
+          <h2 id="features-title" class="section-title">Five Lenses. One Contract.</h2>
+          <p class="section-subtitle">Each tab runs a focused AI analysis so you get fast, precise results — not one massive slow request.</p>
+        </div>
+
+        <div class="features-grid" role="list">
+          <article class="feature-card" role="listitem">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 6h16M4 12h10M4 18h7"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Summary</h3>
+            <p class="feature-desc">Plain-English overview of what the contract does, who it protects, and what it costs. Readable by anyone.</p>
+            <span class="feature-tag">~100 tokens</span>
+          </article>
+
+          <article class="feature-card" role="listitem">
+            <div class="feature-icon feature-icon--warn" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Risk Score</h3>
+            <p class="feature-desc">Quantified 0–100 risk score across five legal categories: liability, IP, termination, data protection, and warranty.</p>
+            <span class="feature-tag">~600 tokens</span>
+          </article>
+
+          <article class="feature-card feature-card--gold" role="listitem">
+            <div class="feature-icon feature-icon--gold" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Key Risks</h3>
+            <p class="feature-desc">Top legal risks flagged as critical, high, medium, or low — with section references and concrete fix recommendations.</p>
+            <span class="feature-tag feature-tag--gold">Most Used</span>
+          </article>
+
+          <article class="feature-card" role="listitem">
+            <div class="feature-icon feature-icon--green" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Missing Clauses</h3>
+            <p class="feature-desc">Identifies what's absent from the contract — from PIPEDA compliance clauses to indemnification and force majeure.</p>
+            <span class="feature-tag">~950 tokens</span>
+          </article>
+
+          <article class="feature-card" role="listitem">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Extract Clauses</h3>
+            <p class="feature-desc">Pulls and categorizes every clause in the document — liability, IP, termination, payment, governing law, and more.</p>
+            <span class="feature-tag">~250 tokens</span>
+          </article>
+
+          <article class="feature-card feature-card--dark" role="listitem">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Privacy First</h3>
+            <p class="feature-desc">Contract text is never stored. Fully PIPEDA-compliant. Analyzed and immediately discarded. No data retention.</p>
+            <span class="feature-tag">PIPEDA</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Live Demo ─────────────────────────────────────────────── -->
+    <section id="demo" class="demo" aria-labelledby="demo-title">
+      <div class="container">
+        <div class="section-header">
+          <p class="section-eyebrow">Live Demo</p>
+          <h2 id="demo-title" class="section-title">Analyze a Contract Now</h2>
+          <p class="section-subtitle">Paste any contract text and click an analysis tab. Results powered by Claude AI.</p>
+        </div>
+
+        <div class="demo-panel">
+          <div class="demo-input-area">
+            <label for="contract-input" class="input-label">Contract Text</label>
+            <textarea
+              id="contract-input"
+              class="contract-textarea"
+              placeholder="Paste your contract text here (minimum 100 characters)..."
+              aria-describedby="input-hint"
+              rows="10"
+            ></textarea>
+            <p id="input-hint" class="input-hint">Your text is never stored. Analyzed and immediately discarded per PIPEDA.</p>
+
+            <div class="demo-meta">
+              <div class="meta-row">
+                <label for="contract-type" class="meta-label">Contract Type</label>
+                <select id="contract-type" class="meta-select" aria-label="Select contract type">
+                  <option value="auto">Auto-detect</option>
+                  <option value="service_agreement">Service Agreement</option>
+                  <option value="nda">NDA</option>
+                  <option value="employment">Employment</option>
+                  <option value="lease">Lease</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="meta-row">
+                <label for="jurisdiction" class="meta-label">Jurisdiction</label>
+                <select id="jurisdiction" class="meta-select" aria-label="Select jurisdiction">
+                  <option value="ON">Ontario</option>
+                  <option value="BC">British Columbia</option>
+                  <option value="AB">Alberta</option>
+                  <option value="CA">Federal (Canada)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Analysis Tabs -->
+          <div class="demo-tabs" role="tablist" aria-label="Analysis tabs">
+            <button class="tab-btn tab-active" role="tab" aria-selected="true" aria-controls="tab-summary" id="btn-summary" data-tab="summary">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" width="14" height="14">
+                <path d="M2 4h12M2 8h8M2 12h5"/>
+              </svg>
+              Summary
+            </button>
+            <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-risk-score" id="btn-risk-score" data-tab="risk-score">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" width="14" height="14">
+                <path d="M8 2v4l3 2M14 8A6 6 0 112 8a6 6 0 0112 0z"/>
+              </svg>
+              Risk Score
+            </button>
+            <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-key-risks" id="btn-key-risks" data-tab="key-risks">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" width="14" height="14">
+                <path d="M8 6v3M8 11v1M7 2.27L1 13h14L8 2.27z"/>
+              </svg>
+              Key Risks
+            </button>
+            <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-missing" id="btn-missing" data-tab="missing-clauses">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" width="14" height="14">
+                <circle cx="8" cy="8" r="6"/><path d="M8 5v3M8 11v1"/>
+              </svg>
+              Missing Clauses
+            </button>
+            <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-extract" id="btn-extract" data-tab="extract-clauses">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" width="14" height="14">
+                <rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 6h6M5 9h4"/>
+              </svg>
+              Extract Clauses
+            </button>
+          </div>
+
+          <!-- Results area -->
+          <div class="demo-results">
+            <div id="tab-summary"   role="tabpanel" aria-labelledby="btn-summary"     class="tab-panel tab-panel--active"></div>
+            <div id="tab-risk-score" role="tabpanel" aria-labelledby="btn-risk-score"  class="tab-panel"></div>
+            <div id="tab-key-risks"  role="tabpanel" aria-labelledby="btn-key-risks"   class="tab-panel"></div>
+            <div id="tab-missing"    role="tabpanel" aria-labelledby="btn-missing"     class="tab-panel"></div>
+            <div id="tab-extract"    role="tabpanel" aria-labelledby="btn-extract"     class="tab-panel"></div>
+
+            <div class="demo-placeholder" id="demo-placeholder" aria-live="polite">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true" width="48" height="48">
+                <path d="M12 4h16l8 8v32H12V4z" stroke-opacity="0.3"/>
+                <path d="M28 4v8h8" stroke-opacity="0.3"/>
+                <path d="M18 20h12M18 26h8M18 32h10" stroke-opacity="0.3"/>
+              </svg>
+              <p>Paste contract text above and click a tab to analyze</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Pricing ───────────────────────────────────────────────── -->
+    <section id="pricing" class="pricing" aria-labelledby="pricing-title">
+      <div class="container">
+        <div class="section-header">
+          <p class="section-eyebrow">Pricing</p>
+          <h2 id="pricing-title" class="section-title">Simple. Transparent. No Surprises.</h2>
+          <p class="section-subtitle">Start free. Upgrade when you're ready.</p>
+        </div>
+
+        <div class="pricing-grid" role="list">
+          <!-- Free -->
+          <article class="pricing-card" role="listitem">
+            <div class="pricing-top">
+              <h3 class="plan-name">Free</h3>
+              <div class="plan-price"><span class="price-amt">$0</span><span class="price-per">/mo</span></div>
+              <p class="plan-desc">Perfect for trying LexAra before committing.</p>
+            </div>
+            <ul class="plan-features" role="list">
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> 5 analyses / month</li>
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> All 5 analysis tabs</li>
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> Ontario jurisdiction</li>
+              <li class="plan-feat--off" role="listitem"><span aria-hidden="true">–</span> API access</li>
+              <li class="plan-feat--off" role="listitem"><span aria-hidden="true">–</span> Priority support</li>
             </ul>
-            <a href="#cta" class="nav-cta">Get Started</a>
-        </div>
-    </nav>
+            <a href="#cta" class="btn btn-outline btn-full">Get Started</a>
+          </article>
 
-    <!-- Hero Section -->
-    <header role="banner" class="hero">
-        <div class="hero-container">
-            <div class="hero-content">
-                <h1 class="hero-title">Analyze Contracts<br>in Seconds with AI</h1>
-                <p class="hero-subtitle">Identify legal risks, missing clauses, and actionable recommendations using Claude AI. Built for Canadian legal professionals.</p>
-                <div class="hero-cta">
-                    <a href="#cta" class="button button-primary" role="button">Start Free Trial</a>
-                    <a href="https://docs.lexrisk.com" class="button button-secondary" role="button">View Documentation</a>
-                </div>
-                <div class="hero-stats">
-                    <div class="stat">
-                        <span class="stat-number">2<span class="stat-unit">s</span></span>
-                        <span class="stat-label">Analysis Time</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number">95<span class="stat-unit">%</span></span>
-                        <span class="stat-label">Accuracy</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number">1000<span class="stat-unit">+</span></span>
-                        <span class="stat-label">Contracts Analyzed</span>
-                    </div>
-                </div>
+          <!-- Starter -->
+          <article class="pricing-card" role="listitem">
+            <div class="pricing-top">
+              <h3 class="plan-name">Starter</h3>
+              <div class="plan-price"><span class="price-amt">$19</span><span class="price-per">/mo</span></div>
+              <p class="plan-desc">For solo practitioners and small firms.</p>
             </div>
-            <div class="hero-visual">
-                <div class="code-block">
-                    <div class="code-header">
-                        <span>analyze_contract.py</span>
-                    </div>
-                    <pre><code>import requests
+            <ul class="plan-features" role="list">
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> 50 analyses / month</li>
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> All 5 analysis tabs</li>
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> All jurisdictions</li>
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> Email support</li>
+              <li class="plan-feat--off" role="listitem"><span aria-hidden="true">–</span> API access</li>
+            </ul>
+            <a href="#cta" class="btn btn-outline btn-full">Start Free Trial</a>
+          </article>
 
-response = requests.post(
-  "https://api.lexrisk.com/v1/analyze",
-  headers={"Authorization": "Bearer sk_..."},
-  json={"text": "contract content"}
-)
-
-result = response.json()
-print(f"Risk Score: {result['risk_score']}")
-print(f"Key Risks: {result['key_risks']}")</code></pre>
-                </div>
+          <!-- Growth — Featured -->
+          <article class="pricing-card pricing-card--featured" role="listitem" aria-label="Most popular plan: Growth">
+            <div class="pricing-badge" aria-label="Most popular">Most Popular</div>
+            <div class="pricing-top">
+              <h3 class="plan-name">Growth</h3>
+              <div class="plan-price"><span class="price-amt">$59</span><span class="price-per">/mo</span></div>
+              <p class="plan-desc">For growing firms that need speed and API access.</p>
             </div>
-        </div>
-    </header>
+            <ul class="plan-features" role="list">
+              <li role="listitem"><span class="check check--gold" aria-hidden="true">✓</span> 500 analyses / month</li>
+              <li role="listitem"><span class="check check--gold" aria-hidden="true">✓</span> Full API access</li>
+              <li role="listitem"><span class="check check--gold" aria-hidden="true">✓</span> Webhooks + batch</li>
+              <li role="listitem"><span class="check check--gold" aria-hidden="true">✓</span> Priority email support</li>
+              <li role="listitem"><span class="check check--gold" aria-hidden="true">✓</span> All jurisdictions</li>
+            </ul>
+            <a href="#cta" class="btn btn-gold btn-full">Start Free Trial</a>
+          </article>
 
-    <!-- Features Section -->
-    <section id="features" aria-labelledby="features-title" class="features">
-        <div class="container">
-            <h2 id="features-title" class="section-title">Powerful Features</h2>
-            <p class="section-subtitle">Everything you need to analyze contracts faster</p>
-            
-            <div class="features-grid">
-                <article class="feature-card">
-                    <div class="feature-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M9 12L11 14L15 10M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <h3 class="feature-title">Risk Detection</h3>
-                    <p class="feature-description">Automatically identify legal risks, unfavorable terms, and liability exposure with AI-powered analysis.</p>
-                </article>
-
-                <article class="feature-card">
-                    <div class="feature-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                    </div>
-                    <h3 class="feature-title">Clause Extraction</h3>
-                    <p class="feature-description">Extract and categorize specific clauses: liability, termination, confidentiality, IP rights, and more.</p>
-                </article>
-
-                <article class="feature-card">
-                    <div class="feature-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                    </div>
-                    <h3 class="feature-title">Fast Analysis</h3>
-                    <p class="feature-description">Get comprehensive legal analysis in under 2 seconds. No waiting, no delays.</p>
-                </article>
-
-                <article class="feature-card">
-                    <div class="feature-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <h3 class="feature-title">Actionable Recommendations</h3>
-                    <p class="feature-description">Receive plain-English recommendations for how to improve contracts and mitigate risks.</p>
-                </article>
-
-                <article class="feature-card">
-                    <div class="feature-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                    </div>
-                    <h3 class="feature-title">PIPEDA Compliant</h3>
-                    <p class="feature-description">Your contracts are analyzed and automatically deleted. Full privacy protection with no storage.</p>
-                </article>
-
-                <article class="feature-card">
-                    <div class="feature-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                    </div>
-                    <h3 class="feature-title">API Access</h3>
-                    <p class="feature-description">Integrate into your tools and workflows. No SDKs needed, just HTTP and JSON.</p>
-                </article>
+          <!-- Business -->
+          <article class="pricing-card" role="listitem">
+            <div class="pricing-top">
+              <h3 class="plan-name">Business</h3>
+              <div class="plan-price"><span class="price-amt">$199</span><span class="price-per">/mo</span></div>
+              <p class="plan-desc">For large firms and legal tech teams.</p>
             </div>
+            <ul class="plan-features" role="list">
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> Unlimited analyses</li>
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> Custom risk models</li>
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> Dedicated support</li>
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> SLA — 99.5% uptime</li>
+              <li role="listitem"><span class="check" aria-hidden="true">✓</span> White-label option</li>
+            </ul>
+            <a href="mailto:sales@lexara.tech" class="btn btn-outline btn-full">Contact Sales</a>
+          </article>
         </div>
+      </div>
     </section>
 
-    <!-- Pricing Section -->
-    <section id="pricing" aria-labelledby="pricing-title" class="pricing">
-        <div class="container">
-            <h2 id="pricing-title" class="section-title">Simple Transparent Pricing</h2>
-            <p class="section-subtitle">Choose the plan that fits your needs</p>
-            
-            <div class="pricing-grid">
-                <!-- Free Tier -->
-                <div class="pricing-card">
-                    <div class="pricing-header">
-                        <h3 class="pricing-title">Free</h3>
-                        <div class="pricing-price">
-                            <span class="currency">$</span><span class="amount">0</span>
-                        </div>
-                        <p class="pricing-period">/month</p>
-                    </div>
-                    <div class="pricing-body">
-                        <ul class="pricing-features" role="list">
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                5 analyses/month
-                            </li>
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                Basic risk detection
-                            </li>
-                            <li class="feature-excluded" role="listitem">
-                                API access
-                            </li>
-                            <li class="feature-excluded" role="listitem">
-                                Priority support
-                            </li>
-                        </ul>
-                    </div>
-                    <a href="#cta" class="button button-secondary button-full" role="button">Get Started</a>
-                </div>
-
-                <!-- Starter Tier -->
-                <div class="pricing-card">
-                    <div class="pricing-header">
-                        <h3 class="pricing-title">Starter</h3>
-                        <div class="pricing-price">
-                            <span class="currency">$</span><span class="amount">19</span>
-                        </div>
-                        <p class="pricing-period">/month</p>
-                    </div>
-                    <div class="pricing-body">
-                        <ul class="pricing-features" role="list">
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                50 analyses/month
-                            </li>
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                Full legal analysis
-                            </li>
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                Extract clauses
-                            </li>
-                            <li class="feature-excluded" role="listitem">
-                                API access
-                            </li>
-                        </ul>
-                    </div>
-                    <a href="#cta" class="button button-primary button-full" role="button">Start Free Trial</a>
-                </div>
-
-                <!-- Growth Tier -->
-                <div class="pricing-card pricing-card-featured">
-                    <div class="pricing-badge">Most Popular</div>
-                    <div class="pricing-header">
-                        <h3 class="pricing-title">Growth</h3>
-                        <div class="pricing-price">
-                            <span class="currency">$</span><span class="amount">59</span>
-                        </div>
-                        <p class="pricing-period">/month</p>
-                    </div>
-                    <div class="pricing-body">
-                        <ul class="pricing-features" role="list">
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                500 analyses/month
-                            </li>
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                Full API access
-                            </li>
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                Webhooks & batch processing
-                            </li>
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                Priority email support
-                            </li>
-                        </ul>
-                    </div>
-                    <a href="#cta" class="button button-primary button-full" role="button">Start Free Trial</a>
-                </div>
-
-                <!-- Business Tier -->
-                <div class="pricing-card">
-                    <div class="pricing-header">
-                        <h3 class="pricing-title">Business</h3>
-                        <div class="pricing-price">
-                            <span class="currency">$</span><span class="amount">199</span>
-                        </div>
-                        <p class="pricing-period">/month</p>
-                    </div>
-                    <div class="pricing-body">
-                        <ul class="pricing-features" role="list">
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                Unlimited analyses
-                            </li>
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                Custom risk models
-                            </li>
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                Dedicated support
-                            </li>
-                            <li class="feature-included" role="listitem">
-                                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                SLA guarantee (99.5%)
-                            </li>
-                        </ul>
-                    </div>
-                    <a href="#cta" class="button button-secondary button-full" role="button">Contact Sales</a>
-                </div>
-            </div>
-        </div>
+    <!-- ── CTA ───────────────────────────────────────────────────── -->
+    <section id="cta" class="cta" aria-labelledby="cta-title">
+      <div class="container cta-inner">
+        <div class="cta-glow" aria-hidden="true"></div>
+        <h2 id="cta-title" class="cta-title">Start Analyzing Contracts Today</h2>
+        <p class="cta-sub">5 free analyses. No credit card required.</p>
+        <form class="cta-form" aria-label="Sign up for free trial" novalidate>
+          <div class="cta-form-row">
+            <label for="cta-email" class="visually-hidden">Email address</label>
+            <input
+              type="email"
+              id="cta-email"
+              class="cta-input"
+              placeholder="your@email.com"
+              autocomplete="email"
+              aria-required="true"
+              aria-describedby="cta-form-hint"
+            />
+            <button type="submit" class="btn btn-gold btn-lg">Get Started Free</button>
+          </div>
+          <p id="cta-form-hint" class="cta-note">By signing up you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
+        </form>
+      </div>
     </section>
 
-    <!-- CTA Section -->
-    <section id="cta" aria-labelledby="cta-title" class="cta">
-        <div class="container cta-content">
-            <h2 id="cta-title" class="cta-title">Ready to Analyze Contracts Faster?</h2>
-            <p class="cta-subtitle">Start your free trial today. No credit card required.</p>
-            <div class="cta-form">
-                <input 
-                    type="email" 
-                    placeholder="your@email.com" 
-                    aria-label="Email address for trial signup"
-                    class="cta-input"
-                    required
-                >
-                <button class="button button-primary" aria-label="Sign up for free trial">Get Started Free</button>
-            </div>
-            <p class="cta-note">Get 5 free analyses. Upgrade anytime.</p>
-        </div>
-    </section>
+  </main>
 
-    <!-- Footer -->
-    <footer role="contentinfo" class="footer">
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-col">
-                    <h3 class="footer-title">LexAra</h3>
-                    <p class="footer-description">AI-powered contract analysis for Canadian legal professionals.</p>
-                </div>
-                <div class="footer-col">
-                    <h4 class="footer-heading">Product</h4>
-                    <ul role="list">
-                        <li><a href="#features">Features</a></li>
-                        <li><a href="#pricing">Pricing</a></li>
-                        <li><a href="https://docs.lexrisk.com">Documentation</a></li>
-                        <li><a href="https://status.lexrisk.com">Status</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h4 class="footer-heading">Company</h4>
-                    <ul role="list">
-                        <li><a href="/about">About</a></li>
-                        <li><a href="/blog">Blog</a></li>
-                        <li><a href="/careers">Careers</a></li>
-                        <li><a href="#contact">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h4 class="footer-heading">Legal</h4>
-                    <ul role="list">
-                        <li><a href="/privacy">Privacy</a></li>
-                        <li><a href="/terms">Terms</a></li>
-                        <li><a href="/security">Security</a></li>
-                        <li><a href="/accessibility">Accessibility</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2026 LexAra. All rights reserved. Built for Canadian legal professionals.</p>
-            </div>
-        </div>
-    </footer>
+  <!-- ── Footer ────────────────────────────────────────────────── -->
+  <footer class="footer" role="contentinfo">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a href="/" class="brand" aria-label="LexAra home">
+          <svg class="brand-icon brand-icon--sm" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <rect width="36" height="36" rx="8" fill="url(#gold-grad2)"/>
+            <path d="M11 26L18 10L25 26" stroke="#0A0A0B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13.5 21H22.5" stroke="#0A0A0B" stroke-width="2.5" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="gold-grad2" x1="0" y1="0" x2="36" y2="36">
+                <stop offset="0%" stop-color="#D4AF37"/>
+                <stop offset="100%" stop-color="#B8960C"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="brand-name">LexAra</span>
+        </a>
+        <p class="footer-tagline">AI contract analysis for Canadian legal professionals.</p>
+      </div>
 
-    <script src="script.js"></script>
+      <nav class="footer-nav" aria-label="Footer navigation">
+        <div class="footer-col">
+          <h3 class="footer-heading">Product</h3>
+          <ul role="list">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="https://api.lexara.tech/docs" target="_blank" rel="noopener">API Docs</a></li>
+            <li><a href="#demo">Live Demo</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3 class="footer-heading">Company</h3>
+          <ul role="list">
+            <li><a href="/about">About</a></li>
+            <li><a href="/blog">Blog</a></li>
+            <li><a href="mailto:hello@lexara.tech">Contact</a></li>
+            <li><a href="mailto:sales@lexara.tech">Sales</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3 class="footer-heading">Legal</h3>
+          <ul role="list">
+            <li><a href="/privacy">Privacy Policy</a></li>
+            <li><a href="/terms">Terms of Service</a></li>
+            <li><a href="/security">Security</a></li>
+            <li><a href="/accessibility">Accessibility</a></li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="container footer-bottom-inner">
+        <p>&copy; 2026 LexAra Inc. All rights reserved. Serving Canadian legal professionals.</p>
+        <p class="footer-compliance">AODA &amp; WCAG 2.1 AA Compliant &bull; PIPEDA Compliant &bull; Made in Canada 🍁</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
 </body>
 </html>
