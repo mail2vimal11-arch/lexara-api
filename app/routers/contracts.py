@@ -1,15 +1,12 @@
-"""Contract analysis endpoints."""
+"""Contract analysis endpoints - tab-based approach."""
 
 from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
 from typing import Optional, List
-import httpx
-import json
 import logging
 from datetime import datetime
 import uuid
 
-from app.config import settings
 from app.database.session import get_db
 from app.services.llm_service import analyze_with_claude
 
@@ -17,188 +14,251 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-class AnalyzeRequest(BaseModel):
-    """Request body for contract analysis."""
-    text: str
-    contract_type: Optional[str] = "auto"  # "service_agreement", "nda", "employment", etc.
-    jurisdiction: Optional[str] = "ON"
-    doc_type: Optional[str] = "contract"
-    include_recommendations: Optional[bool] = True
+# ── Shared request model ──────────────────────────────────────────────────────
 
+class ContractRequest(BaseModel):
+    text: str
+    contract_type: Optional[str] = "auto"
+    jurisdiction: Optional[str] = "ON"
+
+
+def _validate(request: ContractRequest, authorization: str):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    if len(request.text) < 100:
+        raise HTTPException(status_code=400, detail="Contract text must be at least 100 characters")
+    if len(request.text) > 50000:
+        raise HTTPException(status_code=400, detail="Contract text exceeds 50,000 character limit")
+
+
+# ── Tab 1: Summary ────────────────────────────────────────────────────────────
+
+class SummaryResponse(BaseModel):
+    analysis_id: str
+    summary: str
+    contract_type: str
+    jurisdiction: str
+    confidence: float
+    tokens_used: int
+    processing_time_ms: int
+
+
+@router.post("/summary", response_model=SummaryResponse)
+async def get_summary(
+    request: ContractRequest,
+    authorization: str = Header(None),
+    db=Depends(get_db)
+):
+    """
+    Tab 1 — Plain-English summary of the contract.
+    Fast, cheap, ~500 tokens.
+    """
+    _validate(request, authorization)
+    start = datetime.utcnow()
+    try:
+        result = await analyze_with_claude(
+            text=request.text,
+            contract_type=request.contract_type,
+            jurisdiction=request.jurisdiction,
+            mode="summary"
+        )
+        ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        return SummaryResponse(
+            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            summary=result.get("summary", ""),
+            contract_type=result.get("contract_type", request.contract_type),
+            jurisdiction=result.get("jurisdiction", request.jurisdiction),
+            confidence=result.get("confidence", 0.9),
+            tokens_used=result.get("tokens_used", 0),
+            processing_time_ms=ms
+        )
+    except Exception as e:
+        logger.error(f"Summary failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Summary generation failed")
+
+
+# ── Tab 2: Risk Score ─────────────────────────────────────────────────────────
+
+class RiskScoreResponse(BaseModel):
+    analysis_id: str
+    overall_risk_score: int
+    risk_level: str
+    scores_by_category: dict
+    interpretation: str
+    tokens_used: int
+    processing_time_ms: int
+
+
+@router.post("/risk-score", response_model=RiskScoreResponse)
+async def get_risk_score(
+    request: ContractRequest,
+    authorization: str = Header(None),
+    db=Depends(get_db)
+):
+    """
+    Tab 2 — Quantified risk score 0–100 with category breakdown.
+    Categories: liability, data_protection, termination, ip_ownership, warranty.
+    """
+    _validate(request, authorization)
+    start = datetime.utcnow()
+    try:
+        result = await analyze_with_claude(
+            text=request.text,
+            contract_type=request.contract_type,
+            jurisdiction=request.jurisdiction,
+            mode="risk_score"
+        )
+        ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        return RiskScoreResponse(
+            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            overall_risk_score=result.get("overall_risk_score", 50),
+            risk_level=result.get("risk_level", "medium"),
+            scores_by_category=result.get("scores_by_category", {}),
+            interpretation=result.get("interpretation", ""),
+            tokens_used=result.get("tokens_used", 0),
+            processing_time_ms=ms
+        )
+    except Exception as e:
+        logger.error(f"Risk score failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Risk scoring failed")
+
+
+# ── Tab 3: Key Risks ──────────────────────────────────────────────────────────
 
 class RiskFlag(BaseModel):
-    """Risk flag in analysis."""
-    severity: str  # "critical", "high", "medium", "low"
+    severity: str
     title: str
     description: str
     section: Optional[str] = None
     recommendation: Optional[str] = None
 
 
-class AnalyzeResponse(BaseModel):
-    """Response from contract analysis."""
+class KeyRisksResponse(BaseModel):
     analysis_id: str
-    backend: str
-    summary: str
-    confidence: float
+    key_risks: List[RiskFlag]
     tokens_used: int
-    risk_score: Optional[int] = None
-    key_risks: Optional[List[RiskFlag]] = None
-    missing_clauses: Optional[List[str]] = None
     processing_time_ms: int
-    cost_cents: float
 
 
-@router.post("/analyze-contract", response_model=AnalyzeResponse)
-async def analyze_contract(
-    request: AnalyzeRequest,
+@router.post("/key-risks", response_model=KeyRisksResponse)
+async def get_key_risks(
+    request: ContractRequest,
     authorization: str = Header(None),
-    db = Depends(get_db)
+    db=Depends(get_db)
 ):
     """
-    Analyze a contract for legal risks.
-    
-    Returns:
-    - Risk score (0-100)
-    - Key risks with severity levels
-    - Missing protective clauses
-    - Actionable recommendations
+    Tab 3 — Detailed list of legal risks with severity and recommendations.
+    Severities: critical, high, medium, low.
     """
-    
-    start_time = datetime.utcnow()
-    
-    # Validate text length
-    if len(request.text) < 100:
-        raise HTTPException(
-            status_code=400,
-            detail="Contract text must be at least 100 characters"
-        )
-    if len(request.text) > 50000:
-        raise HTTPException(
-            status_code=400,
-            detail="Contract text exceeds 50,000 characters. Please split into multiple documents."
-        )
-    
-    # Validate API key
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
-    
+    _validate(request, authorization)
+    start = datetime.utcnow()
     try:
-        # Call Claude for analysis
         result = await analyze_with_claude(
             text=request.text,
             contract_type=request.contract_type,
             jurisdiction=request.jurisdiction,
-            include_recommendations=request.include_recommendations
+            mode="key_risks"
         )
-        
-        processing_time = int((datetime.utcnow() - start_time).total_seconds() * 1000)
-        
-        return AnalyzeResponse(
+        ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        return KeyRisksResponse(
             analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
-            backend="claude",
-            summary=result.get("summary", ""),
-            confidence=result.get("confidence", 0.9),
-            tokens_used=result.get("tokens_used", 0),
-            risk_score=result.get("risk_score"),
             key_risks=result.get("key_risks", []),
-            missing_clauses=result.get("missing_clauses", []),
-            processing_time_ms=processing_time,
-            cost_cents=3
+            tokens_used=result.get("tokens_used", 0),
+            processing_time_ms=ms
         )
-    
     except Exception as e:
-        logger.error(f"Analysis failed: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Contract analysis failed. Please try again."
-        )
+        logger.error(f"Key risks failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Key risk analysis failed")
 
 
-@router.post("/extract-clauses")
-async def extract_clauses(
-    request: dict,
-    authorization: str = Header(None)
+# ── Tab 4: Missing Clauses ────────────────────────────────────────────────────
+
+class MissingClause(BaseModel):
+    clause: str
+    importance: str
+    rationale: str
+
+
+class MissingClausesResponse(BaseModel):
+    analysis_id: str
+    missing_clauses: List[MissingClause]
+    tokens_used: int
+    processing_time_ms: int
+
+
+@router.post("/missing-clauses", response_model=MissingClausesResponse)
+async def get_missing_clauses(
+    request: ContractRequest,
+    authorization: str = Header(None),
+    db=Depends(get_db)
 ):
     """
-    Extract specific clauses from a contract.
-    
-    Supports:
-    - liability
-    - termination
-    - confidentiality
-    - indemnification
-    - warranty
-    - intellectual_property
+    Tab 4 — Clauses that are absent but should be present.
+    Importance: critical, high, medium, low.
     """
-    
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
-    
-    text = request.get("text", "")
-    clause_types = request.get("clause_types", [])
-    
-    if not text or len(text) < 100:
-        raise HTTPException(status_code=400, detail="Text is required and must be at least 100 characters")
-    
+    _validate(request, authorization)
+    start = datetime.utcnow()
     try:
         result = await analyze_with_claude(
-            text=text,
-            mode="extract_clauses",
-            clause_types=clause_types
+            text=request.text,
+            contract_type=request.contract_type,
+            jurisdiction=request.jurisdiction,
+            mode="missing_clauses"
         )
-        
-        return {
-            "analysis_id": f"anal_{uuid.uuid4().hex[:12]}",
-            "clauses": result.get("clauses", []),
-            "tokens_used": result.get("tokens_used", 0)
-        }
-    
+        ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        return MissingClausesResponse(
+            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            missing_clauses=result.get("missing_clauses", []),
+            tokens_used=result.get("tokens_used", 0),
+            processing_time_ms=ms
+        )
+    except Exception as e:
+        logger.error(f"Missing clauses failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Missing clause analysis failed")
+
+
+# ── Tab 5: Extract Clauses ────────────────────────────────────────────────────
+
+class ExtractedClause(BaseModel):
+    type: str
+    section: Optional[str] = None
+    summary: str
+    confidence: float
+
+
+class ExtractClausesResponse(BaseModel):
+    analysis_id: str
+    clauses: List[ExtractedClause]
+    tokens_used: int
+    processing_time_ms: int
+
+
+@router.post("/extract-clauses", response_model=ExtractClausesResponse)
+async def extract_clauses(
+    request: ContractRequest,
+    authorization: str = Header(None),
+    db=Depends(get_db)
+):
+    """
+    Tab 5 — Extract and categorize existing clauses.
+    Types: liability, termination, confidentiality, indemnification, warranty, ip.
+    """
+    _validate(request, authorization)
+    start = datetime.utcnow()
+    try:
+        result = await analyze_with_claude(
+            text=request.text,
+            contract_type=request.contract_type,
+            jurisdiction=request.jurisdiction,
+            mode="extract_clauses"
+        )
+        ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        return ExtractClausesResponse(
+            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            clauses=result.get("clauses", []),
+            tokens_used=result.get("tokens_used", 0),
+            processing_time_ms=ms
+        )
     except Exception as e:
         logger.error(f"Clause extraction failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Clause extraction failed")
-
-
-@router.post("/risk-score")
-async def calculate_risk_score(
-    request: dict,
-    authorization: str = Header(None)
-):
-    """
-    Calculate quantified risk score (0-100) for a contract.
-    
-    Weighting factors:
-    - liability: 0.25
-    - data_protection: 0.30
-    - termination: 0.15
-    - ip_ownership: 0.20
-    - warranty: 0.10
-    """
-    
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
-    
-    text = request.get("text", "")
-    weighting = request.get("weighting", {})
-    
-    if not text or len(text) < 100:
-        raise HTTPException(status_code=400, detail="Text is required")
-    
-    try:
-        result = await analyze_with_claude(
-            text=text,
-            mode="risk_score",
-            weighting=weighting
-        )
-        
-        return {
-            "overall_risk_score": result.get("overall_risk_score", 50),
-            "risk_level": result.get("risk_level", "medium"),
-            "scores_by_category": result.get("scores_by_category", {}),
-            "interpretation": result.get("interpretation", ""),
-            "tokens_used": result.get("tokens_used", 0)
-        }
-    
-    except Exception as e:
-        logger.error(f"Risk scoring failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Risk scoring failed")

@@ -1,4 +1,4 @@
-"""Claude AI service for contract analysis."""
+"""Claude AI service for contract analysis - tab-based focused prompts."""
 
 import httpx
 import json
@@ -9,24 +9,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-LEGAL_ANALYSIS_SYSTEM_PROMPT = """You are a legal document analyzer specializing in Canadian contract law, particularly Ontario jurisdiction. Your role is to identify legal risks, missing protections, and problematic clauses in contracts.
-
-CRITICAL CONSTRAINTS:
-1. You do NOT provide legal advice. You provide informational analysis only.
-2. You cite only publicly accessible legal sources (CanLII, Ontario Courts, Supreme Court of Canada).
-3. All analysis is for informational purposes and not a substitute for legal advice.
-4. Always include this disclaimer in responses.
-
-OUTPUT REQUIREMENTS:
-- Always return valid JSON matching the provided schema.
-- Severity levels: "critical", "high", "medium", "low".
-- Include specific section references where applicable.
-- Provide actionable recommendations.
-- Flag all assumptions or ambiguities.
-
-LEGAL DISCLAIMER:
-This analysis is provided for informational purposes only and does NOT constitute legal advice. The information provided should not be relied upon to make business or legal decisions. All analysis is based on general principles of Canadian and Ontario contract law. Specific legal advice must be obtained from a qualified legal professional licensed to practice in your jurisdiction.
-"""
+SYSTEM_PROMPT = """You are a legal document analyzer specializing in Canadian contract law (Ontario jurisdiction).
+CRITICAL: Always return valid JSON only. No markdown, no explanation outside the JSON.
+This analysis is informational only — NOT legal advice."""
 
 
 async def analyze_with_claude(
@@ -34,31 +19,22 @@ async def analyze_with_claude(
     contract_type: str = "auto",
     jurisdiction: str = "ON",
     include_recommendations: bool = True,
-    mode: str = "full_analysis"
+    mode: str = "summary",
+    **kwargs
 ) -> Dict[str, Any]:
-    """
-    Analyze contract with Claude API.
-    
-    Args:
-        text: Contract text to analyze
-        contract_type: Type of contract (service_agreement, nda, employment, etc.)
-        jurisdiction: Legal jurisdiction (ON, CA, etc.)
-        include_recommendations: Whether to include recommendations
-        mode: Analysis mode (full_analysis, extract_clauses, risk_score)
-    
-    Returns:
-        Analysis result with risks, missing clauses, and recommendations
-    """
-    
-    if mode == "full_analysis":
-        prompt = _build_full_analysis_prompt(text, contract_type, jurisdiction, include_recommendations)
-    elif mode == "extract_clauses":
-        prompt = _build_clause_extraction_prompt(text)
-    elif mode == "risk_score":
-        prompt = _build_risk_score_prompt(text)
-    else:
-        prompt = _build_full_analysis_prompt(text, contract_type, jurisdiction, include_recommendations)
-    
+    """Call Claude with a focused prompt based on the requested tab/mode."""
+
+    prompts = {
+        "summary": _prompt_summary,
+        "risk_score": _prompt_risk_score,
+        "key_risks": _prompt_key_risks,
+        "missing_clauses": _prompt_missing_clauses,
+        "extract_clauses": _prompt_extract_clauses,
+    }
+
+    prompt_fn = prompts.get(mode, _prompt_summary)
+    prompt = prompt_fn(text, contract_type, jurisdiction)
+
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
@@ -70,173 +46,98 @@ async def analyze_with_claude(
                 },
                 json={
                     "model": "claude-haiku-4-5",
-                    "max_tokens": 8096,
-                    "system": LEGAL_ANALYSIS_SYSTEM_PROMPT,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ]
+                    "max_tokens": 2048,
+                    "system": SYSTEM_PROMPT,
+                    "messages": [{"role": "user", "content": prompt}]
                 }
             )
-            
+
             if response.status_code != 200:
                 logger.error(f"Claude API error: {response.text}")
                 raise Exception(f"Claude API error: {response.status_code}")
-            
+
             result = response.json()
             tokens_used = result["usage"]["output_tokens"]
-            
-            # Extract JSON from response
-            content = result["content"][0]["text"]
-            
-            try:
-                # Try to parse JSON from response
-                # Claude might wrap it in markdown code blocks
-                if "```json" in content:
-                    json_str = content.split("```json")[1].split("```")[0].strip()
-                elif "```" in content:
-                    json_str = content.split("```")[1].split("```")[0].strip()
-                else:
-                    json_str = content
+            content = result["content"][0]["text"].strip()
 
-                # Find JSON object boundaries if there's extra text
-                start = json_str.find("{")
-                end = json_str.rfind("}") + 1
-                if start != -1 and end > start:
-                    json_str = json_str[start:end]
+            # Strip markdown code fences if present
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0].strip()
 
-                analysis = json.loads(json_str)
+            # Find JSON boundaries
+            start = content.find("{")
+            end = content.rfind("}") + 1
+            if start != -1 and end > start:
+                content = content[start:end]
 
-                # Normalize key_risks format (list or dict)
-                raw_risks = analysis.get("key_risks", [])
-                if isinstance(raw_risks, dict):
-                    raw_risks = [
-                        {"title": k, **v} if isinstance(v, dict) else {"title": k, "description": str(v), "severity": "medium"}
-                        for k, v in raw_risks.items()
-                    ]
-                if isinstance(raw_risks, list):
-                    normalized = []
-                    for r in raw_risks:
-                        if isinstance(r, dict):
-                            normalized.append({
-                                "severity": r.get("severity", "medium"),
-                                "title": r.get("title", ""),
-                                "description": r.get("description", ""),
-                                "section": r.get("section"),
-                                "recommendation": r.get("recommendation"),
-                            })
-                    analysis["key_risks"] = normalized
-
-                # Normalize missing_clauses to list of strings
-                if "missing_clauses" in analysis and isinstance(analysis["missing_clauses"], list):
-                    normalized_mc = []
-                    for mc in analysis["missing_clauses"]:
-                        if isinstance(mc, dict):
-                            normalized_mc.append(mc.get("clause", str(mc)))
-                        else:
-                            normalized_mc.append(str(mc))
-                    analysis["missing_clauses"] = normalized_mc
-
-            except json.JSONDecodeError:
-                logger.warning(f"Failed to parse Claude response as JSON: {content[:200]}")
-                analysis = {
-                    "summary": content,
-                    "confidence": 0.7,
-                    "tokens_used": tokens_used
-                }
-            
+            analysis = json.loads(content)
             analysis["tokens_used"] = tokens_used
+
+            # Normalize key_risks (list or dict → list of RiskFlag dicts)
+            if "key_risks" in analysis:
+                raw = analysis["key_risks"]
+                if isinstance(raw, dict):
+                    raw = [{"title": k, **v} if isinstance(v, dict) else {"title": k, "description": str(v), "severity": "medium"} for k, v in raw.items()]
+                analysis["key_risks"] = [
+                    {
+                        "severity": r.get("severity", "medium"),
+                        "title": r.get("title", ""),
+                        "description": r.get("description", ""),
+                        "section": r.get("section"),
+                        "recommendation": r.get("recommendation"),
+                    }
+                    for r in raw if isinstance(r, dict)
+                ]
+
+            # Normalize missing_clauses (list of dicts or strings)
+            if "missing_clauses" in analysis:
+                raw = analysis["missing_clauses"]
+                normalized = []
+                for mc in raw:
+                    if isinstance(mc, dict):
+                        normalized.append({
+                            "clause": mc.get("clause", mc.get("name", str(mc))),
+                            "importance": mc.get("importance", mc.get("severity", "medium")),
+                            "rationale": mc.get("rationale", mc.get("reason", "")),
+                        })
+                    else:
+                        normalized.append({"clause": str(mc), "importance": "medium", "rationale": ""})
+                analysis["missing_clauses"] = normalized
+
             return analysis
-    
+
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parse failed: {e} | content: {content[:300]}")
+        raise Exception("Failed to parse Claude response")
     except Exception as e:
         logger.error(f"Claude analysis failed: {e}", exc_info=True)
         raise
 
 
-def _build_full_analysis_prompt(text: str, contract_type: str, jurisdiction: str, include_recommendations: bool) -> str:
-    """Build prompt for full contract analysis."""
-    
-    return f"""Analyze this {contract_type} contract for legal risks:
+# ── Focused prompts per tab ───────────────────────────────────────────────────
 
-CONTRACT TEXT:
-{text[:8000]}
+def _prompt_summary(text: str, contract_type: str, jurisdiction: str) -> str:
+    return f"""Summarize this {contract_type} contract in plain English for a non-lawyer.
 
-JURISDICTION: {jurisdiction}
-CONTRACT_TYPE: {contract_type}
+CONTRACT (first 6000 chars):
+{text[:6000]}
 
-Please provide analysis in JSON format with the following structure:
+Return JSON:
 {{
-  "summary": "Brief overview of the contract",
-  "key_risks": [
-    {{
-      "severity": "high",
-      "title": "Risk title",
-      "description": "Detailed description",
-      "section": "Section reference",
-      "recommendation": "How to fix"
-    }}
-  ],
-  "missing_clauses": [
-    {{
-      "clause": "Clause name",
-      "importance": "critical/high/medium/low",
-      "rationale": "Why it's needed"
-    }}
-  ],
-  "risk_score": 0-100,
+  "summary": "2-3 sentence plain-English overview of what this contract does",
+  "contract_type": "detected type (service_agreement|nda|employment|lease|other)",
+  "jurisdiction": "{jurisdiction}",
   "confidence": 0.0-1.0
-}}
-
-Focus on:
-1. Liability exposure (capped vs unlimited)
-2. Data protection (PIPEDA compliance if applicable)
-3. Termination rights (notice periods, cause requirements)
-4. IP ownership (assignments, restrictions)
-5. Warranties and representations
-6. Indemnification obligations
-
-Include a DISCLAIMER that this is informational, not legal advice.
-"""
+}}"""
 
 
-def _build_clause_extraction_prompt(text: str) -> str:
-    """Build prompt for clause extraction."""
-    
-    return f"""Extract and categorize clauses from this contract:
+def _prompt_risk_score(text: str, contract_type: str, jurisdiction: str) -> str:
+    return f"""Score the legal risk of this {contract_type} contract under {jurisdiction} law. 0=no risk, 100=extreme risk.
 
-CONTRACT TEXT:
-{text[:8000]}
-
-Return JSON with structure:
-{{
-  "clauses": [
-    {{
-      "type": "liability|termination|confidentiality|warranty|ip|indemnification",
-      "section": "Section reference",
-      "summary": "Brief summary",
-      "confidence": 0.95
-    }}
-  ]
-}}
-"""
-
-
-def _build_risk_score_prompt(text: str) -> str:
-    """Build prompt for risk scoring."""
-    
-    return f"""Score legal risk for this contract on a 0-100 scale:
-
-CONTRACT TEXT:
-{text[:8000]}
-
-Categories:
-- liability: Exposure to damages
-- data_protection: PIPEDA / privacy compliance
-- termination: Unfavorable exit clauses
-- ip_ownership: IP assignment risks
-- warranty: Warranty disclaimers
+CONTRACT (first 6000 chars):
+{text[:6000]}
 
 Return JSON:
 {{
@@ -249,6 +150,62 @@ Return JSON:
     "ip_ownership": 0-100,
     "warranty": 0-100
   }},
-  "interpretation": "Plain-English explanation"
-}}
-"""
+  "interpretation": "1-2 sentence plain English explanation of the score"
+}}"""
+
+
+def _prompt_key_risks(text: str, contract_type: str, jurisdiction: str) -> str:
+    return f"""Identify the top legal risks in this {contract_type} contract under {jurisdiction} law.
+
+CONTRACT (first 6000 chars):
+{text[:6000]}
+
+Return JSON with up to 6 risks:
+{{
+  "key_risks": [
+    {{
+      "severity": "critical|high|medium|low",
+      "title": "Short risk title",
+      "description": "What the risk is and why it matters",
+      "section": "Which section/clause (if identifiable)",
+      "recommendation": "How to fix or mitigate it"
+    }}
+  ]
+}}"""
+
+
+def _prompt_missing_clauses(text: str, contract_type: str, jurisdiction: str) -> str:
+    return f"""Identify important clauses that are MISSING from this {contract_type} contract under {jurisdiction} law.
+
+CONTRACT (first 6000 chars):
+{text[:6000]}
+
+Return JSON:
+{{
+  "missing_clauses": [
+    {{
+      "clause": "Clause name",
+      "importance": "critical|high|medium|low",
+      "rationale": "Why this clause is needed and what risk its absence creates"
+    }}
+  ]
+}}"""
+
+
+def _prompt_extract_clauses(text: str, contract_type: str, jurisdiction: str) -> str:
+    return f"""Extract and categorize the key clauses that ARE present in this contract.
+
+CONTRACT (first 6000 chars):
+{text[:6000]}
+
+Return JSON:
+{{
+  "clauses": [
+    {{
+      "type": "liability|termination|confidentiality|indemnification|warranty|ip|payment|governing_law|dispute_resolution|other",
+      "section": "Section reference if available",
+      "summary": "One sentence summary of what this clause says",
+      "confidence": 0.0-1.0
+    }}
+  ]
+}}"""
