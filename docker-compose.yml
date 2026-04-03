@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  frontend:
+    image: nginx:alpine
+    restart: always
+    volumes:
+      - ./website:/usr/share/nginx/html:ro
+    networks:
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lexara-web.rule=Host(`lexara.tech`) || Host(`www.lexara.tech`)"
+      - "traefik.http.routers.lexara-web.entrypoints=websecure"
+      - "traefik.http.routers.lexara-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.lexara-web.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-public"
+
   api:
     build: .
     restart: always
