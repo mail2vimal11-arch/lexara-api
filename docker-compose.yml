@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    restart: always
+    env_file: .env
+    networks:
+      - traefik-public
+      - internal
+    depends_on:
+      - db
+      - redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lexara-api.rule=Host(`api.lexara.tech`)"
+      - "traefik.http.routers.lexara-api.entrypoints=websecure"
+      - "traefik.http.routers.lexara-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.lexara-api.loadbalancer.server.port=8000"
+      - "traefik.docker.network=traefik-public"
+
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: lexara
+      POSTGRES_PASSWORD: lexara123
+      POSTGRES_DB: lexaradb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+
+networks:
+  traefik-public:
+    external: true
+  internal:
+    driver: bridge
