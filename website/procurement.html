@@ -104,7 +104,14 @@
     .pt-finding:last-child { border-bottom: none; }
     .pt-finding .term { font-family: var(--font-mono); font-size: 0.85rem; color: var(--gold); background: var(--gold-muted); padding: 2px 8px; border-radius: 4px; }
     .pt-finding .suggestion { color: var(--text-secondary); font-size: 0.87rem; margin-top: 6px; line-height: 1.5; }
-    .pt-finding .context { color: var(--text-muted); font-size: 0.82rem; font-style: italic; margin-top: 4px; border-left: 2px solid var(--border-2); padding-left: 10px; }
+    .pt-finding .before-after { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pt-finding .before-after .ba-block { border-radius: 6px; padding: 10px 12px; font-size: 0.83rem; line-height: 1.6; }
+    .pt-finding .ba-before { background: rgba(239,68,68,0.08); border-left: 3px solid #ef4444; color: var(--text-secondary); }
+    .pt-finding .ba-after  { background: rgba(74,222,128,0.08); border-left: 3px solid #4ade80; color: var(--text-secondary); }
+    .pt-finding .ba-label  { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .pt-finding .ba-before .ba-label { color: #ef4444; }
+    .pt-finding .ba-after  .ba-label { color: #4ade80; }
+    @media (max-width: 600px) { .pt-finding .before-after { grid-template-columns: 1fr; } }
 
     /* Citation finding */
     .pt-citation { padding: var(--space-3) 0; border-bottom: 1px solid var(--border); }
@@ -439,7 +446,11 @@ function renderLinterResults(data) {
       <div class="pt-finding">
         <span class="term">${escHtml(f.term)}</span>
         <div class="suggestion">💡 ${escHtml(f.suggestion)}</div>
-        ${f.context ? `<div class="context">${escHtml(f.context.substring(0, 160))}</div>` : ''}
+        ${(f.original || f.revised) ? `
+        <div class="before-after">
+          ${f.original ? `<div class="ba-block ba-before"><div class="ba-label">Before</div>${escHtml(f.original)}</div>` : ''}
+          ${f.revised  ? `<div class="ba-block ba-after"><div class="ba-label">After</div>${escHtml(f.revised)}</div>` : ''}
+        </div>` : ''}
       </div>
     `).join('');
     return `
