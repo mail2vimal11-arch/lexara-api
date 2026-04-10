@@ -8,7 +8,7 @@ import logging
 
 from app.config import settings
 from app.database.session import init_db
-from app.routers import contracts, usage, health, upload, billing
+from app.routers import contracts, usage, health, upload, billing, procurement
 from app.middleware.auth import APIKeyMiddleware
 from app.middleware.logging import LoggingMiddleware
 
@@ -60,6 +60,7 @@ app.include_router(contracts.router, prefix="/v1", tags=["Contracts"])
 app.include_router(upload.router, prefix="/v1", tags=["Upload"])
 app.include_router(billing.router, prefix="/v1", tags=["Billing"])
 app.include_router(usage.router, prefix="/v1", tags=["Usage"])
+app.include_router(procurement.router, prefix="/v1/procurement", tags=["Procurement Tools"])
 
 # Global Exception Handler
 @app.exception_handler(Exception)
