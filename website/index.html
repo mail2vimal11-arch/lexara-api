@@ -15,8 +15,93 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── Auth Gate Overlay ─────────────────────────────────── */
+    #auth-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(10,10,11,0.96);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #auth-overlay.hidden { display: none; }
+    .auth-modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 40px 44px; width: 100%; max-width: 420px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    }
+    .auth-modal-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+    .auth-modal-logo .logo-mark { font-size: 1.6rem; }
+    .auth-modal-logo .logo-text { font-family: var(--font-display); font-size: 1.4rem; color: var(--text-primary); }
+    .auth-modal-logo .logo-accent { color: var(--gold); }
+    .auth-modal h2 { font-family: var(--font-display); font-size: 1.5rem; color: var(--text-primary); margin-bottom: 6px; }
+    .auth-modal p.sub { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 24px; line-height: 1.6; }
+    .auth-tabs-row { display: flex; gap: 4px; background: var(--surface-2); border-radius: 8px; padding: 4px; margin-bottom: 22px; }
+    .auth-tab-btn { flex: 1; padding: 9px; border: none; border-radius: 6px; background: transparent; color: var(--text-secondary); font-size: 0.88rem; cursor: pointer; transition: all 0.15s; }
+    .auth-tab-btn.active { background: var(--surface-3); color: var(--text-primary); font-weight: 600; }
+    .auth-fields { display: flex; flex-direction: column; gap: 12px; }
+    .auth-fields input, .auth-fields select {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;
+      padding: 12px 14px; outline: none; transition: border-color 0.15s;
+    }
+    .auth-fields input:focus, .auth-fields select:focus { border-color: var(--gold); }
+    .auth-fields select option { background: var(--surface-2); }
+    .auth-submit-btn {
+      margin-top: 6px; padding: 13px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: #000; font-weight: 700; font-size: 0.95rem;
+      border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.15s;
+    }
+    .auth-submit-btn:hover { opacity: 0.88; }
+    .auth-msg { font-size: 0.83rem; margin-top: 8px; min-height: 18px; }
+    .auth-msg.error   { color: #f87171; }
+    .auth-msg.success { color: #4ade80; }
+    .auth-divider { text-align: center; color: var(--text-muted); font-size: 0.78rem; margin: 10px 0; }
+  </style>
 </head>
 <body>
+
+  <!-- ── Auth Gate Overlay ─────────────────────────────────────── -->
+  <div id="auth-overlay">
+    <div class="auth-modal">
+      <div class="auth-modal-logo">
+        <span class="logo-mark">⚖</span>
+        <span class="logo-text">Lex<span class="logo-accent">Ara</span></span>
+      </div>
+      <h2>Welcome Back</h2>
+      <p class="sub">Sign in to analyze contracts, access the live demo, and use Procurement Intelligence tools.</p>
+      <div class="auth-tabs-row">
+        <button class="auth-tab-btn active" onclick="switchAuthTab('login')">Sign In</button>
+        <button class="auth-tab-btn" onclick="switchAuthTab('register')">Create Account</button>
+      </div>
+
+      <!-- Login -->
+      <div id="gate-login">
+        <div class="auth-fields">
+          <input type="text" id="gate-username" placeholder="Username" autocomplete="username" />
+          <input type="password" id="gate-password" placeholder="Password" autocomplete="current-password" />
+          <button class="auth-submit-btn" onclick="doGateLogin()">Sign In →</button>
+        </div>
+        <div class="auth-msg" id="gate-login-msg"></div>
+      </div>
+
+      <!-- Register -->
+      <div id="gate-register" style="display:none">
+        <div class="auth-fields">
+          <input type="text" id="gate-reg-username" placeholder="Username" autocomplete="username" />
+          <input type="email" id="gate-reg-email" placeholder="Email address" autocomplete="email" />
+          <input type="password" id="gate-reg-password" placeholder="Password" autocomplete="new-password" />
+          <select id="gate-reg-role">
+            <option value="procurement">Procurement Officer</option>
+            <option value="legal">Legal Counsel</option>
+          </select>
+          <button class="auth-submit-btn" onclick="doGateRegister()">Create Account →</button>
+        </div>
+        <div class="auth-msg" id="gate-reg-msg"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- ── Navigation ────────────────────────────────────────────── -->
   <header class="nav" role="banner">
@@ -45,12 +130,14 @@
           <li><a href="#features" class="nav-link">Features</a></li>
           <li><a href="#demo" class="nav-link">Live Demo</a></li>
           <li><a href="#pricing" class="nav-link">Pricing</a></li>
-          <li><a href="/procurement.html" class="nav-link">Procurement Tools</a></li>
-          <li><a href="/procurement-ai.html" class="nav-link">Procurement AI</a></li>
+          <li><a href="/procurement-intelligence.html" class="nav-link">Procurement Intelligence</a></li>
         </ul>
       </nav>
-
-      <a href="#cta" class="btn btn-gold nav-cta">Get Started</a>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span id="nav-user" style="display:none;color:var(--text-muted);font-size:0.82rem"></span>
+        <button id="nav-signout" onclick="doGateLogout()" style="display:none;background:transparent;border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;padding:5px 12px;font-size:0.8rem;cursor:pointer">Sign Out</button>
+        <a href="#cta" class="btn btn-gold nav-cta" id="nav-cta-btn">Get Started</a>
+      </div>
     </div>
   </header>
 
@@ -77,7 +164,7 @@
             AI-powered analysis trained on Ontario and federal contract law.
           </p>
           <div class="hero-actions">
-            <a href="#demo" class="btn btn-gold btn-lg">Try Live Demo</a>
+            <a href="#demo" class="btn btn-gold btn-lg" id="hero-demo-btn">Try Live Demo</a>
           </div>
           <div class="hero-stats" role="list" aria-label="Key statistics">
             <div class="stat" role="listitem">
@@ -463,8 +550,7 @@
           <li><a href="#features">Features</a></li>
           <li><a href="#pricing">Pricing</a></li>
           <li><a href="#demo">Live Demo</a></li>
-          <li><a href="/procurement.html">Procurement Tools</a></li>
-          <li><a href="/procurement-ai.html">Procurement AI</a></li>
+          <li><a href="/procurement-intelligence.html">Procurement Intelligence</a></li>
         </ul>
       </div>
       <div class="footer-col">
