@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Sign in or create a free account to access LexAra AI contract analysis." />
+  <title>Sign In — LexAra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    .auth-page {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 40px 20px;
+      background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(212,175,55,0.07) 0%, transparent 70%);
+    }
+    .auth-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 44px 48px; width: 100%; max-width: 440px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+    }
+    .auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; text-decoration: none; }
+    .auth-logo .logo-mark { font-size: 1.7rem; }
+    .auth-logo .logo-text { font-family: var(--font-display); font-size: 1.5rem; color: var(--text-primary); }
+    .auth-logo .logo-accent { color: var(--gold); }
+
+    .auth-tabs { display: flex; gap: 4px; background: var(--surface-2); border-radius: 10px; padding: 4px; margin-bottom: 28px; }
+    .auth-tab { flex: 1; padding: 10px; border: none; border-radius: 7px; background: transparent; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+    .auth-tab.active { background: var(--surface-3); color: var(--text-primary); font-weight: 600; }
+
+    .auth-form { display: flex; flex-direction: column; gap: 14px; }
+    .auth-form input, .auth-form select {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text-primary); font-size: 0.92rem;
+      padding: 13px 16px; outline: none; transition: border-color 0.15s; width: 100%; box-sizing: border-box;
+    }
+    .auth-form input:focus, .auth-form select:focus { border-color: var(--gold); }
+    .auth-form select option { background: var(--surface-2); }
+
+    .auth-form label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: -8px; }
+
+    .auth-submit {
+      padding: 14px; margin-top: 4px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: #000; font-weight: 700; font-size: 0.97rem;
+      border: none; border-radius: 10px; cursor: pointer; transition: opacity 0.15s;
+    }
+    .auth-submit:hover { opacity: 0.88; }
+
+    .auth-msg { font-size: 0.85rem; min-height: 20px; text-align: center; }
+    .auth-msg.error   { color: #f87171; }
+    .auth-msg.success { color: #4ade80; }
+
+    .auth-footer-note { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 20px; line-height: 1.6; }
+    .auth-footer-note a { color: var(--gold); text-decoration: none; }
+
+    .auth-divider { display: flex; align-items: center; gap: 12px; margin: 4px 0; }
+    .auth-divider span { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+    .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  </style>
+</head>
+<body>
+
+<!-- Nav (minimal) -->
+<header class="nav" role="banner">
+  <div class="nav-inner">
+    <a href="/" class="brand" aria-label="LexAra home">
+      <span style="font-size:1.3rem">⚖</span>
+      <span style="font-family:var(--font-display);font-size:1.2rem;color:var(--text-primary);margin-left:8px">Lex<span style="color:var(--gold)">Ara</span></span>
+    </a>
+    <a href="/" class="btn btn-ghost" style="font-size:0.85rem">← Back to Home</a>
+  </div>
+</header>
+
+<div class="auth-page">
+  <div class="auth-box">
+    <a href="/" class="auth-logo">
+      <span class="logo-mark">⚖</span>
+      <span class="logo-text">Lex<span class="logo-accent">Ara</span></span>
+    </a>
+
+    <div class="auth-tabs">
+      <button class="auth-tab" id="tab-login" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Create Account</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="form-login">
+      <div class="auth-form">
+        <div>
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" placeholder="your username" autocomplete="username" />
+        </div>
+        <div>
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <button class="auth-submit" onclick="doLogin()">Sign In →</button>
+        <div class="auth-msg" id="login-msg"></div>
+      </div>
+      <p class="auth-footer-note">Don't have an account? <a href="#" onclick="switchTab('register');return false">Create one free →</a></p>
+    </div>
+
+    <!-- Register Form -->
+    <div id="form-register" style="display:none">
+      <div class="auth-form">
+        <div>
+          <label for="reg-username">Username</label>
+          <input type="text" id="reg-username" placeholder="choose a username" autocomplete="username" />
+        </div>
+        <div>
+          <label for="reg-email">Email address</label>
+          <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div>
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password" />
+        </div>
+        <div>
+          <label for="reg-role">I am a…</label>
+          <select id="reg-role">
+            <option value="procurement">Procurement Officer</option>
+            <option value="legal">Legal Counsel</option>
+          </select>
+        </div>
+        <button class="auth-submit" onclick="doRegister()">Create Free Account →</button>
+        <div class="auth-msg" id="reg-msg"></div>
+      </div>
+      <p class="auth-footer-note">Already have an account? <a href="#" onclick="switchTab('login');return false">Sign in →</a></p>
+    </div>
+
+    <div class="auth-divider" style="margin-top:20px"><span>No credit card required · PIPEDA compliant</span></div>
+  </div>
+</div>
+
+<script>
+const API = "https://api.lexara.tech/v1";
+
+// Read ?mode= from URL to pick tab
+const urlMode = new URLSearchParams(window.location.search).get("mode");
+
+function switchTab(tab) {
+  document.getElementById("form-login").style.display    = tab === "login"    ? "" : "none";
+  document.getElementById("form-register").style.display = tab === "register" ? "" : "none";
+  document.getElementById("tab-login").classList.toggle("active",    tab === "login");
+  document.getElementById("tab-register").classList.toggle("active", tab === "register");
+}
+
+async function doLogin() {
+  const username = document.getElementById("login-username").value.trim();
+  const password = document.getElementById("login-password").value;
+  const msg      = document.getElementById("login-msg");
+  msg.textContent = "";
+  if (!username || !password) { msg.className = "auth-msg error"; msg.textContent = "Please fill in all fields."; return; }
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Login failed");
+    localStorage.setItem("pai_token", data.access_token);
+    localStorage.setItem("pai_role",  data.role);
+    localStorage.setItem("pai_user",  username);
+    msg.className = "auth-msg success";
+    msg.textContent = "✓ Signed in — redirecting…";
+    const redirect = new URLSearchParams(window.location.search).get("next") || "/#demo";
+    setTimeout(() => window.location.href = redirect, 600);
+  } catch(e) {
+    msg.className = "auth-msg error";
+    msg.textContent = e.message;
+  }
+}
+
+async function doRegister() {
+  const username = document.getElementById("reg-username").value.trim();
+  const email    = document.getElementById("reg-email").value.trim();
+  const password = document.getElementById("reg-password").value;
+  const role     = document.getElementById("reg-role").value;
+  const msg      = document.getElementById("reg-msg");
+  msg.textContent = "";
+  if (!username || !email || !password) { msg.className = "auth-msg error"; msg.textContent = "Please fill in all fields."; return; }
+  try {
+    const res = await fetch(`${API}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password, role }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Registration failed");
+    msg.className = "auth-msg success";
+    msg.textContent = "✓ Account created — signing you in…";
+    // Auto-login
+    setTimeout(async () => {
+      const res2 = await fetch(`${API}/auth/login`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const d2 = await res2.json();
+      localStorage.setItem("pai_token", d2.access_token);
+      localStorage.setItem("pai_role",  d2.role);
+      localStorage.setItem("pai_user",  username);
+      const redirect = new URLSearchParams(window.location.search).get("next") || "/#demo";
+      window.location.href = redirect;
+    }, 800);
+  } catch(e) {
+    msg.className = "auth-msg error";
+    msg.textContent = e.message;
+  }
+}
+
+// Enter key support
+document.addEventListener("DOMContentLoaded", () => {
+  switchTab(urlMode === "register" ? "register" : "login");
+
+  // If already logged in, redirect straight to demo
+  if (localStorage.getItem("pai_token")) {
+    window.location.href = new URLSearchParams(window.location.search).get("next") || "/#demo";
+    return;
+  }
+
+  ["login-username","login-password"].forEach(id => {
+    document.getElementById(id)?.addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+  });
+  ["reg-username","reg-email","reg-password"].forEach(id => {
+    document.getElementById(id)?.addEventListener("keydown", e => { if (e.key === "Enter") doRegister(); });
+  });
+});
+</script>
+</body>
+</html>

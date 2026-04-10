@@ -514,100 +514,61 @@ if (textarea) {
 }
 
 /* ============================================================
-   Auth Gate — overlays the full page until signed in
-   Token stored in localStorage, shared with procurement-intelligence.html
+   Auth — show/hide demo based on token; update nav state
    ============================================================ */
 
 const GATE_API = 'https://api.lexara.tech/v1';
 
 function switchAuthTab(tab) {
-  document.getElementById('gate-login').style.display    = tab === 'login'    ? '' : 'none';
-  document.getElementById('gate-register').style.display = tab === 'register' ? '' : 'none';
-  document.querySelectorAll('.auth-tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', (i === 0) === (tab === 'login'));
-  });
-}
-
-async function doGateLogin() {
-  const username = document.getElementById('gate-username').value.trim();
-  const password = document.getElementById('gate-password').value;
-  const msg      = document.getElementById('gate-login-msg');
-  msg.textContent = '';
-  try {
-    const res = await fetch(`${GATE_API}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Login failed');
-    localStorage.setItem('pai_token', data.access_token);
-    localStorage.setItem('pai_role',  data.role);
-    localStorage.setItem('pai_user',  username);
-    showAuthenticatedState(username, data.role);
-  } catch(e) {
-    msg.className = 'auth-msg error';
-    msg.textContent = e.message;
-  }
-}
-
-async function doGateRegister() {
-  const username = document.getElementById('gate-reg-username').value.trim();
-  const email    = document.getElementById('gate-reg-email').value.trim();
-  const password = document.getElementById('gate-reg-password').value;
-  const role     = document.getElementById('gate-reg-role').value;
-  const msg      = document.getElementById('gate-reg-msg');
-  msg.textContent = '';
-  try {
-    const res = await fetch(`${GATE_API}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password, role }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Registration failed');
-    msg.className = 'auth-msg success';
-    msg.textContent = '✓ Account created — signing you in…';
-    // Auto-login after register
-    document.getElementById('gate-username').value = username;
-    document.getElementById('gate-password').value = password;
-    setTimeout(doGateLogin, 800);
-  } catch(e) {
-    msg.className = 'auth-msg error';
-    msg.textContent = e.message;
-  }
+  // legacy — kept for any inline calls
 }
 
 function doGateLogout() {
   localStorage.removeItem('pai_token');
   localStorage.removeItem('pai_role');
   localStorage.removeItem('pai_user');
-  document.getElementById('auth-overlay').classList.remove('hidden');
-  document.getElementById('nav-user').style.display    = 'none';
-  document.getElementById('nav-signout').style.display = 'none';
-  document.getElementById('nav-cta-btn').style.display = '';
+  showGuestState();
+}
+
+function showGuestState() {
+  const demoContent  = document.getElementById('demo-content');
+  const demoGate     = document.getElementById('demo-auth-gate');
+  const navUser      = document.getElementById('nav-user');
+  const navSignout   = document.getElementById('nav-signout');
+  const navCtaBtn    = document.getElementById('nav-cta-btn');
+  if (demoContent) demoContent.style.display = 'none';
+  if (demoGate)    demoGate.style.display = '';
+  if (navUser)     navUser.style.display = 'none';
+  if (navSignout)  navSignout.style.display = 'none';
+  if (navCtaBtn)   navCtaBtn.style.display = '';
 }
 
 function showAuthenticatedState(username, role) {
-  document.getElementById('auth-overlay').classList.add('hidden');
-  const navUser = document.getElementById('nav-user');
-  navUser.textContent = `${username} · ${role}`;
-  navUser.style.display = '';
-  document.getElementById('nav-signout').style.display = '';
-  document.getElementById('nav-cta-btn').style.display = 'none';
+  const demoContent  = document.getElementById('demo-content');
+  const demoGate     = document.getElementById('demo-auth-gate');
+  const navUser      = document.getElementById('nav-user');
+  const navSignout   = document.getElementById('nav-signout');
+  const navCtaBtn    = document.getElementById('nav-cta-btn');
+  if (demoContent) demoContent.style.display = '';
+  if (demoGate)    demoGate.style.display = 'none';
+  if (navUser)   { navUser.textContent = `${username} · ${role}`; navUser.style.display = ''; }
+  if (navSignout)  navSignout.style.display = '';
+  if (navCtaBtn)   navCtaBtn.style.display = 'none';
 }
 
-// On page load — restore session or show gate
+// On every page load — check token
 document.addEventListener('DOMContentLoaded', () => {
   const token = localStorage.getItem('pai_token');
   const user  = localStorage.getItem('pai_user');
   const role  = localStorage.getItem('pai_role');
   if (token && user) {
     showAuthenticatedState(user, role);
+  } else {
+    showGuestState();
   }
-  // Allow Enter key in login form
+  // Enter key in old gate forms (noop now but harmless)
   ['gate-username','gate-password'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') doGateLogin(); });
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') {} });
   });
 });
