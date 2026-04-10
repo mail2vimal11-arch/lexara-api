@@ -7,8 +7,9 @@ from contextlib import asynccontextmanager
 import logging
 
 from app.config import settings
-from app.database.session import init_db
+from app.database.session import init_db, SessionLocal
 from app.routers import contracts, usage, health, upload, billing, procurement
+from app.routers import auth_routes, procurement_clause_routes, ingestion_routes, compare_routes
 from app.middleware.auth import APIKeyMiddleware
 from app.middleware.logging import LoggingMiddleware
 
@@ -17,18 +18,33 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
-    # Startup
     logger.info(f"🚀 {settings.app_name} v{settings.version} starting...")
     try:
         init_db()
+        # Create procurement AI tables
+        from app.database.session import Base, engine
+        from app.models import user, tender, clause, audit  # noqa: F401
+        Base.metadata.create_all(bind=engine)
         logger.info("✅ Database initialized")
+
+        # Seed Ontario standard clauses + bootstrap FAISS index
+        db = SessionLocal()
+        try:
+            from app.services.clause_seed import seed_clauses
+            seeded = seed_clauses(db)
+            if seeded:
+                logger.info(f"✅ Seeded {seeded} standard clauses")
+            from app.nlp.search import bootstrap_index_from_db
+            bootstrap_index_from_db(db)
+            logger.info("✅ FAISS index ready")
+        finally:
+            db.close()
     except Exception as e:
-        logger.error(f"❌ Database init failed: {e}")
-    
+        logger.error(f"❌ Startup error: {e}", exc_info=True)
+
     yield
-    
-    # Shutdown
-    logger.info("🛑 {settings.app_name} shutting down...")
+
+    logger.info("🛑 Shutting down...")
 
 
 app = FastAPI(
@@ -61,6 +77,11 @@ app.include_router(upload.router, prefix="/v1", tags=["Upload"])
 app.include_router(billing.router, prefix="/v1", tags=["Billing"])
 app.include_router(usage.router, prefix="/v1", tags=["Usage"])
 app.include_router(procurement.router, prefix="/v1/procurement", tags=["Procurement Tools"])
+# Procurement AI — new modules
+app.include_router(auth_routes.router, prefix="/v1")
+app.include_router(procurement_clause_routes.router, prefix="/v1/procurement")
+app.include_router(ingestion_routes.router, prefix="/v1/procurement")
+app.include_router(compare_routes.router, prefix="/v1/procurement")
 
 # Global Exception Handler
 @app.exception_handler(Exception)

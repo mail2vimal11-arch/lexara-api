@@ -18,3 +18,12 @@ pypdf==4.1.0
 python-docx==1.1.0
 email-validator==2.1.0
 spacy>=3.7.0
+sentence-transformers==2.3.1
+scikit-learn==1.4.0
+faiss-cpu==1.7.4
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+slowapi==0.1.9
+tenacity==8.2.3
+pandas==2.1.4
+openpyxl==3.1.2

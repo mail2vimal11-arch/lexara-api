@@ -47,6 +47,13 @@ class Settings(BaseSettings):
     enable_async_processing: bool = True
     enable_caching: bool = True
     enable_webhooks: bool = True
+
+    # Procurement AI
+    jwt_secret: str = "change-this-jwt-secret"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60
+    ted_api_base: str = "https://api.ted.europa.eu/v3"
+    ocp_api_base: str = "https://data.open-contracting.org/api/3/action"
     
     class Config:
         env_file = ".env"
