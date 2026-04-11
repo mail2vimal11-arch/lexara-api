@@ -43,6 +43,13 @@ class TestProcurementIntelligenceHTML:
     def test_auth_gate_exists(self, html):
         assert 'id="auth-gate"' in html
 
+    def test_show_app_uses_block_not_empty_string(self, html):
+        """Regression: style.display='' does NOT override CSS 'display:none' rules.
+        showApp() must set display='block' to override the #pai-app CSS rule."""
+        assert '.style.display = "block"' in html or ".style.display = 'block'" in html
+        # Must NOT use empty string to show #pai-app
+        assert 'getElementById("pai-app").style.display = ""' not in html
+
     def test_login_form_elements(self, html):
         assert 'id="login-username"' in html
         assert 'id="login-password"' in html
