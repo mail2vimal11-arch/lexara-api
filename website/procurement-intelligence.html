@@ -481,12 +481,12 @@ function doLogout() {
   localStorage.removeItem("pai_user");
   _token = _role = _user = null;
   document.getElementById("pai-app").style.display = "none";
-  document.getElementById("auth-gate").style.display = "";
+  document.getElementById("auth-gate").style.display = "block";
 }
 
 function showApp() {
   document.getElementById("auth-gate").style.display = "none";
-  document.getElementById("pai-app").style.display = "";
+  document.getElementById("pai-app").style.display = "block";
   document.getElementById("user-display").textContent = _user;
   document.getElementById("role-display").textContent  = _role;
   if (_role === "admin") document.getElementById("ingest-btn").style.display = "";
