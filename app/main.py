@@ -37,6 +37,14 @@ async def lifespan(app: FastAPI):
             from app.nlp.search import bootstrap_index_from_db
             bootstrap_index_from_db(db)
             logger.info("✅ FAISS index ready")
+
+            # Auto-ingest tenders if table is empty
+            from app.models.tender import Tender
+            if db.query(Tender).count() == 0:
+                logger.info("📡 Tenders table empty — running initial ingestion...")
+                from app.ingestion.pipeline import run_ingestion
+                result = await run_ingestion(db, query="procurement")
+                logger.info(f"✅ Initial ingestion: {result.get('new', 0)} tenders, {result.get('clauses_learned', 0)} clauses")
         finally:
             db.close()
     except Exception as e:

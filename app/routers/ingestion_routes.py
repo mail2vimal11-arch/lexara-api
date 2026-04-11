@@ -33,7 +33,7 @@ async def trigger_ingestion(
 
 
 @router.get("/tenders")
-def list_tenders(
+async def list_tenders(
     source: Optional[str] = Query(None),
     country: Optional[str] = Query(None),
     limit: int = Query(50, le=200),
@@ -41,7 +41,12 @@ def list_tenders(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("procurement")),
 ):
-    """List ingested tenders with optional source/country filters."""
+    """List ingested tenders with optional source/country filters.
+    Auto-ingests from TED + OCP if the table is empty."""
+    # Auto-ingest if no tenders exist yet
+    if db.query(Tender).count() == 0:
+        await run_ingestion(db, query="procurement")
+
     q = db.query(Tender)
     if source:
         q = q.filter(Tender.source == source.upper())
