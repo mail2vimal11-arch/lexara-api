@@ -18,6 +18,8 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         "/redoc",
         "/openapi.json",
         "/",
+        "/v1/auth/register",
+        "/v1/auth/login",
     }
     
     async def dispatch(self, request: Request, call_next):
