@@ -18,13 +18,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # ── Password ──────────────────────────────────────────────────────────────────
 
 def hash_password(password: str) -> str:
-    """Hash a plain-text password."""
-    return pwd_context.hash(password)
+    """Hash a plain-text password. Truncate to 72 bytes (bcrypt limit)."""
+    return pwd_context.hash(password[:72])
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     """Verify a plain-text password against its hash."""
-    return pwd_context.verify(plain, hashed)
+    return pwd_context.verify(plain[:72], hashed)
 
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
