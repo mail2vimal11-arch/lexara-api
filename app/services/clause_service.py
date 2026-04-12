@@ -588,6 +588,150 @@ CLAUSE_DB: list[dict] = [
         "source": "GC Digital Standards / Custom",
         "notes": "Align with GC Digital Standards. Define 'Definition of Done' in Schedule A.",
     },
+    {
+        "id": "CFTA-001",
+        "category": "Trade Agreements",
+        "title": "CFTA Chapter 5 — Government Procurement",
+        "tags": ["CFTA", "Canadian Free Trade Agreement", "internal trade", "non-discrimination", "Chapter 5"],
+        "text": (
+            "This procurement is subject to the Canadian Free Trade Agreement (CFTA), Chapter 5 — "
+            "Government Procurement. All Canadian suppliers shall be afforded equal access and "
+            "non-discriminatory treatment pursuant to Article 504. Technical specifications shall not "
+            "create unnecessary obstacles to internal trade. Procurement notices shall be published on "
+            "a single electronic tendering system accessible to all Canadian suppliers."
+        ),
+        "source": "CFTA Chapter 5 (2017, as amended)",
+        "notes": "CFTA replaced the Agreement on Internal Trade (AIT) in 2017. Thresholds adjusted biennially.",
+    },
+    {
+        "id": "CFTA-002",
+        "category": "Trade Agreements",
+        "title": "CFTA Limited Tendering Exceptions",
+        "tags": ["CFTA", "limited tendering", "sole source", "non-competitive", "Article 513"],
+        "text": (
+            "Limited tendering (sole-source) may only be used in circumstances permitted under CFTA "
+            "Article 513: (a) no responsive bids in open tendering; (b) only one supplier due to "
+            "exclusive rights; (c) extreme urgency; (d) additional goods from original supplier; or "
+            "(e) value below the CFTA threshold. The procuring entity shall maintain a written record "
+            "justifying the use of limited tendering."
+        ),
+        "source": "CFTA Article 513",
+        "notes": "Sole-source justifications are subject to CITT review. Document rationale thoroughly.",
+    },
+    {
+        "id": "CFTA-003",
+        "category": "Trade Agreements",
+        "title": "CFTA Procurement Thresholds",
+        "tags": ["CFTA", "thresholds", "goods", "services", "construction", "MASH"],
+        "text": (
+            "CFTA Chapter 5 applies when estimated value exceeds: $30,300 CAD for goods, $121,200 CAD "
+            "for services, and $303,000 CAD for construction (2024-2025 values). For MASH-sector entities "
+            "(municipalities, academic, social, health), thresholds are: $121,200 for goods, $121,200 for "
+            "services, $303,000 for construction. Thresholds are adjusted biennially by Statistics Canada."
+        ),
+        "source": "CFTA Annex 504.1",
+        "notes": "Do not divide procurements to avoid thresholds. Include options/renewals in value estimate.",
+    },
+    {
+        "id": "COMP-001",
+        "category": "Competition Law",
+        "title": "Bid-Rigging (Competition Act s. 47)",
+        "tags": ["bid rigging", "Competition Act", "criminal", "collusion", "section 47"],
+        "text": (
+            "The Contractor certifies that it has not engaged in bid-rigging as defined in section 47 "
+            "of the Competition Act, RSC 1985, c C-34. Bid-rigging is a criminal offence carrying a "
+            "maximum penalty of 14 years imprisonment. The Contractor shall not enter into any agreement "
+            "with other bidders regarding the submission or withdrawal of bids, price levels, terms, "
+            "conditions, or the allocation of contracts."
+        ),
+        "source": "Competition Act, RSC 1985, c C-34, s. 47",
+        "notes": "Bid-rigging is a per se criminal offence — no 'efficiencies' defence available. Report suspicious conduct to the Competition Bureau.",
+    },
+    {
+        "id": "COMP-002",
+        "category": "Competition Law",
+        "title": "Price-Fixing and Market Allocation (Competition Act s. 45)",
+        "tags": ["price fixing", "Competition Act", "conspiracy", "market allocation", "section 45", "cartel"],
+        "text": (
+            "The Contractor certifies compliance with section 45 of the Competition Act, RSC 1985, "
+            "c C-34, and represents it has not conspired to fix prices, allocate markets or customers, "
+            "or restrict the supply of goods or services. Violations are criminal offences punishable by "
+            "up to 14 years imprisonment and/or fines up to $25 million. A breach shall constitute "
+            "grounds for immediate termination and debarment under the Integrity Framework."
+        ),
+        "source": "Competition Act, RSC 1985, c C-34, s. 45",
+        "notes": "The Competition Bureau operates an Immunity and Leniency Program for self-reporting participants.",
+    },
+    {
+        "id": "COMP-003",
+        "category": "Competition Law",
+        "title": "Competition Bureau Cooperation",
+        "tags": ["Competition Bureau", "investigation", "cooperation", "whistleblower", "records"],
+        "text": (
+            "The Contractor acknowledges that the Competition Bureau may investigate anti-competitive "
+            "conduct in government procurement. The Contractor shall cooperate fully with any Bureau "
+            "investigation, preserve all procurement-related records, and immediately report to the "
+            "Contracting Authority any conduct by competitors that may violate the Competition Act."
+        ),
+        "source": "Competition Act / Competition Bureau",
+        "notes": "The Bureau's Immunity Program grants immunity to the first participant to disclose cartel conduct.",
+    },
+    {
+        "id": "CITT-001",
+        "category": "Procurement Review",
+        "title": "CITT Bid Challenge Mechanism",
+        "tags": ["CITT", "Canadian International Trade Tribunal", "bid challenge", "complaint", "procurement review"],
+        "text": (
+            "Any supplier that believes this procurement has not been conducted in accordance with "
+            "applicable trade agreements (CFTA, CETA, WTO GPA, CPTPP) may file a complaint with the "
+            "Canadian International Trade Tribunal within ten (10) working days of learning of the "
+            "basis for the complaint, pursuant to the CITT Procurement Inquiry Regulations, SOR/93-602."
+        ),
+        "source": "Canadian International Trade Tribunal Act, RSC 1985, c 47 (4th Supp)",
+        "notes": "The CITT is the independent review body for federal procurement. Provincial equivalents vary.",
+    },
+    {
+        "id": "CITT-002",
+        "category": "Procurement Review",
+        "title": "CITT Inquiry Process and Timelines",
+        "tags": ["CITT", "inquiry", "timelines", "delay award", "procurement challenge"],
+        "text": (
+            "The CITT shall determine within five (5) working days whether to conduct an inquiry. If "
+            "an inquiry is initiated before contract award, the procuring entity shall delay award for "
+            "the duration of the inquiry unless urgent operational requirements justify proceeding. The "
+            "CITT must issue a determination within 90 days (135 days for complex cases)."
+        ),
+        "source": "CITT Procurement Inquiry Regulations, SOR/93-602",
+        "notes": "Pre-award complaints are more effective — post-award remedies are typically limited to compensation.",
+    },
+    {
+        "id": "CITT-003",
+        "category": "Procurement Review",
+        "title": "CITT Remedies and Recommendations",
+        "tags": ["CITT", "remedies", "compensation", "re-evaluation", "re-tender", "lost profits"],
+        "text": (
+            "Where the CITT finds a procurement was not conducted in accordance with trade agreements, "
+            "it may recommend: (a) re-evaluation of bids; (b) termination and re-tender; (c) award to "
+            "the complainant; or (d) compensation for reasonable bid preparation costs or lost profits. "
+            "The Government shall implement recommendations within the time specified by the Tribunal."
+        ),
+        "source": "Canadian International Trade Tribunal Act / CITT Jurisprudence",
+        "notes": "CITT recommendations are not legally binding but are implemented in practice. ~85% compliance rate.",
+    },
+    {
+        "id": "OPO-001",
+        "category": "Procurement Review",
+        "title": "Office of the Procurement Ombudsman",
+        "tags": ["Procurement Ombudsman", "OPO", "fairness", "complaint", "review", "below threshold"],
+        "text": (
+            "Suppliers may raise procurement concerns with the Office of the Procurement Ombudsman (OPO) "
+            "established under the Department of Public Works and Government Services Act, s. 22.1. The "
+            "OPO reviews procurement practices, investigates complaints regarding awards below CITT "
+            "thresholds, and makes non-binding recommendations to improve fairness and transparency."
+        ),
+        "source": "DPWGS Act, RSC 1985, c P-38.2, s. 22.1",
+        "notes": "The OPO complements the CITT for lower-value procurements. Also reviews departmental practices.",
+    },
 ]
 
 
