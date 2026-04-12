@@ -264,6 +264,330 @@ CLAUSE_DB: list[dict] = [
         "source": "Financial Administration Act / Interest Regs",
         "notes": "The Interest and Administrative Charges Regulations set the Crown's late payment interest obligation.",
     },
+    {
+        "id": "FM-001",
+        "category": "Force Majeure",
+        "title": "Force Majeure (Pandemic Extended)",
+        "tags": ["force majeure", "pandemic", "epidemic", "act of god", "unforeseeable"],
+        "text": (
+            "Neither party shall be liable for delay or failure to perform if caused by events beyond "
+            "reasonable control, including acts of God, war, terrorism, fire, flood, earthquake, epidemic, "
+            "pandemic, governmental action, or labour disputes. The affected party shall notify the other "
+            "within five (5) business days and use commercially reasonable efforts to resume performance. "
+            "If the Force Majeure Event continues for more than ninety (90) days, either party may terminate."
+        ),
+        "source": "Custom / Best Practice",
+        "notes": "Post-COVID, pandemic/epidemic language is now standard. Review insurance coverage alignment.",
+    },
+    {
+        "id": "ASSIGN-001",
+        "category": "Assignment",
+        "title": "No Assignment Without Consent",
+        "tags": ["assignment", "transfer", "consent", "subcontract"],
+        "text": (
+            "The Contractor shall not assign this Contract or any part thereof without the prior written "
+            "consent of Canada. Any assignment made without consent is void. Canada may assign its rights "
+            "under this Contract to any federal department or agency without the Contractor's consent."
+        ),
+        "source": "SACC Manual — Adapted",
+        "notes": "Standard in Crown procurement. Consider adding change-of-control trigger language.",
+    },
+    {
+        "id": "INS-001",
+        "category": "Insurance",
+        "title": "Insurance Requirements (Comprehensive)",
+        "tags": ["insurance", "CGL", "professional liability", "cyber", "workers compensation"],
+        "text": (
+            "The Contractor shall maintain: (a) Commercial General Liability insurance of not less than "
+            "$5,000,000 per occurrence; (b) Professional Liability (E&O) insurance of not less than "
+            "$2,000,000 per claim; (c) Cyber Liability insurance of not less than $1,000,000; and "
+            "(d) Workers' Compensation as required by law. Canada shall be named as additional insured "
+            "on CGL. Certificates of insurance shall be provided prior to commencing work."
+        ),
+        "source": "Custom / Best Practice",
+        "notes": "Adjust limits based on contract value and risk. Cyber liability is increasingly standard for IT contracts.",
+    },
+    {
+        "id": "SUB-001",
+        "category": "Subcontracting",
+        "title": "Subcontracting (Consent Required)",
+        "tags": ["subcontracting", "subcontractor", "consent", "prime contractor"],
+        "text": (
+            "The Contractor shall not subcontract any part of the Work without the prior written consent "
+            "of the Contracting Authority. The Contractor remains fully responsible for all subcontracted "
+            "work as if performed directly. Subcontracting does not relieve the Contractor of any "
+            "obligation under this Contract."
+        ),
+        "source": "SACC Manual — Adapted",
+        "notes": "Identify key subcontractors in the bid. Consent should not be unreasonably withheld.",
+    },
+    {
+        "id": "COI-001",
+        "category": "Conflict of Interest",
+        "title": "Conflict of Interest Disclosure",
+        "tags": ["conflict of interest", "disclosure", "organizational", "bias"],
+        "text": (
+            "The Contractor shall not provide services where such services could give rise to a real, "
+            "potential, or apparent conflict of interest. The Contractor shall promptly disclose any "
+            "situation that may constitute a conflict and Canada shall determine the appropriate remedy. "
+            "The Contractor shall not provide advice on matters in which it has a financial interest "
+            "without full disclosure and written consent."
+        ),
+        "source": "Custom / Best Practice",
+        "notes": "Particularly important for advisory/consulting contracts. Include organizational COI screening.",
+    },
+    {
+        "id": "KEY-001",
+        "category": "Key Personnel",
+        "title": "Key Personnel Requirements",
+        "tags": ["key personnel", "named resources", "replacement", "qualifications"],
+        "text": (
+            "The Contractor shall assign the key personnel identified in its proposal. No key personnel "
+            "shall be removed or replaced without the prior written consent of the Technical Authority. "
+            "Proposed replacements must possess equivalent or greater qualifications and experience. "
+            "Failure to maintain acceptable key personnel may constitute grounds for termination."
+        ),
+        "source": "Custom / Best Practice",
+        "notes": "List specific individuals and roles in the SOW. Include a staffing matrix in Schedule B.",
+    },
+    {
+        "id": "AUDIT-001",
+        "category": "Audit Rights",
+        "title": "Crown Audit Rights (7 Years)",
+        "tags": ["audit", "inspection", "records", "auditor general", "financial"],
+        "text": (
+            "The Contractor shall maintain complete records of all costs incurred under this Contract for "
+            "seven (7) years after final payment. Canada, the Auditor General, and their representatives "
+            "may inspect, audit, and copy such records on reasonable notice. The Contractor shall provide "
+            "all assistance and access necessary for audit purposes."
+        ),
+        "source": "Financial Administration Act / SACC",
+        "notes": "Seven years is the standard retention period. Required for all cost-reimbursable contracts.",
+    },
+    {
+        "id": "WARR-001",
+        "category": "Warranty",
+        "title": "Standard 12-Month Warranty",
+        "tags": ["warranty", "defects", "guarantee", "repair", "replace"],
+        "text": (
+            "The Contractor warrants that all deliverables shall be free from defects in design, materials, "
+            "and workmanship for twelve (12) months from written acceptance. During the warranty period, the "
+            "Contractor shall repair or replace defective deliverables within ten (10) business days at no "
+            "additional cost. The warranty shall not apply to defects caused by Canada's misuse."
+        ),
+        "source": "Custom / Best Practice",
+        "notes": "Extend to 24 months for critical systems. Consider performance warranties for IT/software.",
+    },
+    {
+        "id": "DATA-001",
+        "category": "Data Residency",
+        "title": "Canadian Data Residency",
+        "tags": ["data residency", "data sovereignty", "canada", "cloud", "storage"],
+        "text": (
+            "All data, including personal information and Protected B information, shall be stored, "
+            "processed, and backed up exclusively within Canada. The Contractor shall not transfer data "
+            "outside Canada without prior written consent. Cloud infrastructure must be hosted in Canadian "
+            "data centres operated by providers with a Canadian presence."
+        ),
+        "source": "TBS Directive on Service and Digital / Custom",
+        "notes": "Mandatory for Protected B and above. Consider GC Cloud Guardrails compliance.",
+    },
+    {
+        "id": "TRANS-001",
+        "category": "Transition",
+        "title": "Transition Services on Contract End",
+        "tags": ["transition", "knowledge transfer", "handover", "successor", "exit"],
+        "text": (
+            "Upon expiry or termination, the Contractor shall provide transition services for up to ninety "
+            "(90) days to facilitate orderly transfer to Canada or a successor. Transition shall include "
+            "knowledge transfer, data migration, documentation of processes, and parallel operations support. "
+            "The Contractor shall return or destroy all confidential information."
+        ),
+        "source": "Custom / Best Practice",
+        "notes": "Critical for IT managed services and outsourcing. Include in pricing as a separate line.",
+    },
+    {
+        "id": "BOND-001",
+        "category": "Bonding",
+        "title": "Bid Bond (10%)",
+        "tags": ["bid bond", "surety", "financial security", "bid security"],
+        "text": (
+            "The Bidder shall provide a bid bond or irrevocable standby letter of credit equal to ten "
+            "percent (10%) of the total bid price, issued by a surety licensed in Canada and acceptable "
+            "to Canada. The bid bond shall remain valid for sixty (60) days following bid closing. "
+            "The bond will be forfeited if the successful bidder fails to execute the contract."
+        ),
+        "source": "SACC Manual — Adapted",
+        "notes": "Standard for construction contracts. Typically 10% of bid price. Treasury Board approved sureties.",
+    },
+    {
+        "id": "BOND-002",
+        "category": "Bonding",
+        "title": "Performance Bond (50%)",
+        "tags": ["performance bond", "surety", "financial security", "completion"],
+        "text": (
+            "Within fourteen (14) days of award, the Contractor shall deliver a performance bond equal to "
+            "fifty percent (50%) of the Contract Price, issued by a Treasury Board approved surety. The "
+            "bond shall remain in force until one year after substantial completion. The surety shall "
+            "be jointly and severally liable with the Contractor for performance."
+        ),
+        "source": "SACC Manual — Adapted",
+        "notes": "Pair with Labour and Material Bond. Standard for construction over $200K.",
+    },
+    {
+        "id": "HOLD-001",
+        "category": "Holdback",
+        "title": "10% Holdback Until Substantial Completion",
+        "tags": ["holdback", "retainage", "retention", "progress payment", "construction"],
+        "text": (
+            "Canada shall retain ten percent (10%) from each progress payment until Substantial Completion "
+            "is certified. The holdback shall be released forty-five (45) days after Substantial Completion, "
+            "provided all deficiency work is complete and no liens have been registered. The holdback "
+            "complies with applicable provincial construction lien legislation."
+        ),
+        "source": "Construction Act / Best Practice",
+        "notes": "Ontario Construction Act requires statutory holdback. Release timing follows lien expiry.",
+    },
+    {
+        "id": "LANG-001",
+        "category": "Official Languages",
+        "title": "Bilingual Requirements",
+        "tags": ["official languages", "bilingual", "english", "french", "translation"],
+        "text": (
+            "All deliverables, reports, user interfaces, and public-facing materials shall be provided in "
+            "both official languages (English and French) in accordance with the Official Languages Act, "
+            "RSC 1985, c 31 (4th Supp). Translation shall be of professional quality and reviewed by "
+            "Canada's official languages coordinator."
+        ),
+        "source": "Official Languages Act / TBS Policy",
+        "notes": "Mandatory for all federal public-facing deliverables. Budget for translation costs.",
+    },
+    {
+        "id": "ENV-001",
+        "category": "Environmental",
+        "title": "Green Procurement Requirements",
+        "tags": ["green procurement", "environmental", "sustainability", "carbon", "recycled"],
+        "text": (
+            "The Contractor shall comply with the Government of Canada's Policy on Green Procurement and "
+            "the Federal Sustainable Development Strategy. Deliverables shall minimize environmental impact "
+            "including use of recycled materials, energy-efficient equipment, and reduced packaging. The "
+            "Contractor shall report on carbon footprint reduction measures quarterly."
+        ),
+        "source": "Policy on Green Procurement / FSDS",
+        "notes": "Increasingly weighted in evaluation criteria. Consider LEED, Energy Star certifications.",
+    },
+    {
+        "id": "SEC-001",
+        "category": "Security",
+        "title": "Personnel Security Clearance",
+        "tags": ["security clearance", "reliability", "secret", "top secret", "CISD"],
+        "text": (
+            "Personnel requiring access to protected or classified information must hold a valid security "
+            "clearance (Reliability Status, Secret, or Top Secret) issued by the Canadian Industrial "
+            "Security Directorate. No individual shall access such information without the required "
+            "clearance. The Contractor shall notify Canada immediately if any cleared person's status changes."
+        ),
+        "source": "PSPC Industrial Security / Custom",
+        "notes": "Clearance levels: Reliability < Secret < Top Secret. Allow 3-6 months processing time.",
+    },
+    {
+        "id": "ACCESS-001",
+        "category": "Accessibility",
+        "title": "WCAG 2.1 AA + AODA Compliance",
+        "tags": ["accessibility", "WCAG", "AODA", "inclusive design", "assistive technology"],
+        "text": (
+            "All web-based deliverables and digital content shall meet WCAG 2.1 Level AA conformance and "
+            "comply with the AODA Integrated Accessibility Standards, O Reg 191/11. The Contractor shall "
+            "conduct accessibility testing with assistive technologies (screen readers, voice control) and "
+            "provide a Voluntary Product Accessibility Template (VPAT) for all software deliverables."
+        ),
+        "source": "AODA / Accessible Canada Act / TBS Standard",
+        "notes": "Mandatory for all Government of Canada web content. WCAG 2.1 AA is the minimum standard.",
+    },
+    {
+        "id": "BC-001",
+        "category": "Business Continuity",
+        "title": "Business Continuity and Disaster Recovery",
+        "tags": ["business continuity", "disaster recovery", "BCP", "DRP", "RTO", "RPO"],
+        "text": (
+            "The Contractor shall maintain a Business Continuity Plan and Disaster Recovery Plan ensuring "
+            "recovery of critical services within four (4) hours (RTO) and data loss of no more than "
+            "one (1) hour (RPO). Plans shall be tested annually with results provided to Canada. The "
+            "Contractor shall notify Canada within one (1) hour of any service disruption."
+        ),
+        "source": "Custom / Best Practice",
+        "notes": "Adjust RTO/RPO based on criticality. For Tier 1 systems, RTO may be 1 hour or less.",
+    },
+    {
+        "id": "CORR-001",
+        "category": "Anti-Corruption",
+        "title": "Anti-Corruption (CFPOA Compliance)",
+        "tags": ["anti-corruption", "bribery", "CFPOA", "integrity", "ethics"],
+        "text": (
+            "The Contractor certifies that neither the Contractor nor its agents have paid or offered any "
+            "bribe or improper advantage to any public official in connection with this Contract, in "
+            "violation of the Corruption of Foreign Public Officials Act, SC 1998, c 34, or the Criminal "
+            "Code. The Contractor shall maintain an anti-corruption compliance program."
+        ),
+        "source": "CFPOA / Integrity Provisions",
+        "notes": "Breach may result in ineligibility under the Ineligibility and Suspension Policy.",
+    },
+    {
+        "id": "PRICE-001",
+        "category": "Price Adjustment",
+        "title": "Annual CPI Price Escalation",
+        "tags": ["price adjustment", "escalation", "CPI", "inflation", "index"],
+        "text": (
+            "Contract rates shall be adjusted annually based on the Consumer Price Index (CPI) for Canada, "
+            "All Items, as published by Statistics Canada. The adjustment equals the percentage change in "
+            "CPI over the preceding twelve months, capped at three percent (3%) per year. Adjustments take "
+            "effect on each anniversary of the contract effective date."
+        ),
+        "source": "Custom / Best Practice",
+        "notes": "Use CANSIM Table 18-10-0004-01. Cap protects against runaway inflation.",
+    },
+    {
+        "id": "LD-001",
+        "category": "Liquidated Damages",
+        "title": "Delay Damages (1% per week, 10% cap)",
+        "tags": ["liquidated damages", "delay", "penalty", "late delivery"],
+        "text": (
+            "If the Contractor fails to deliver by the specified date, Canada is entitled to liquidated "
+            "damages of one percent (1%) of the late deliverable value per week of delay, up to ten "
+            "percent (10%) of total Contract Price. The parties agree this is a genuine pre-estimate "
+            "of damages and not a penalty."
+        ),
+        "source": "Custom / Best Practice",
+        "notes": "Must be a genuine pre-estimate — Canadian courts will strike penalty clauses. See Dunlop v New Garage.",
+    },
+    {
+        "id": "SAAS-001",
+        "category": "Cloud / SaaS",
+        "title": "SaaS Service Terms",
+        "tags": ["SaaS", "cloud", "subscription", "availability", "data portability", "exit"],
+        "text": (
+            "The Contractor shall deliver the SaaS solution with 99.9% availability measured monthly. "
+            "Service credits of 2% per 0.1% below target shall apply automatically. Upon termination, "
+            "the Contractor shall provide data export in standard format and maintain read-only access "
+            "for ninety (90) days. Twelve (12) months' notice required before end-of-life."
+        ),
+        "source": "GC Cloud Framework / Custom",
+        "notes": "Ensure data residency in Canada. Require GC Cloud Guardrails compliance assessment.",
+    },
+    {
+        "id": "AGILE-001",
+        "category": "Agile Development",
+        "title": "Agile Sprint-Based Delivery",
+        "tags": ["agile", "sprint", "scrum", "product backlog", "iteration", "DevOps"],
+        "text": (
+            "The Work shall be delivered using Agile methodology with two-week sprint cycles. Each sprint "
+            "shall produce potentially shippable increments per the prioritized product backlog. Sprint "
+            "planning, reviews, and retrospectives shall include Canada's Product Owner. Acceptance of "
+            "each sprint deliverable shall be confirmed within five (5) business days."
+        ),
+        "source": "GC Digital Standards / Custom",
+        "notes": "Align with GC Digital Standards. Define 'Definition of Done' in Schedule A.",
+    },
 ]
 
 

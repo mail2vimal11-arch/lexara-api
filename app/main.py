@@ -34,17 +34,28 @@ async def lifespan(app: FastAPI):
             seeded = seed_clauses(db)
             if seeded:
                 logger.info(f"✅ Seeded {seeded} standard clauses")
+
+            # Seed reference tenders (fallback when APIs are unavailable)
+            from app.services.tender_seed import seed_tenders
+            tender_seeded = seed_tenders(db)
+            if tender_seeded:
+                logger.info(f"✅ Seeded {tender_seeded} reference tenders")
+
             from app.nlp.search import bootstrap_index_from_db
             bootstrap_index_from_db(db)
             logger.info("✅ FAISS index ready")
 
-            # Auto-ingest tenders if table is empty
+            # Also try live ingestion from TED/OCP (best-effort)
             from app.models.tender import Tender
-            if db.query(Tender).count() == 0:
-                logger.info("📡 Tenders table empty — running initial ingestion...")
-                from app.ingestion.pipeline import run_ingestion
-                result = await run_ingestion(db, query="procurement")
-                logger.info(f"✅ Initial ingestion: {result.get('new', 0)} tenders, {result.get('clauses_learned', 0)} clauses")
+            live_count = db.query(Tender).filter(Tender.source != "Reference").count()
+            if live_count == 0:
+                try:
+                    logger.info("📡 Attempting live ingestion from TED + OCP...")
+                    from app.ingestion.pipeline import run_ingestion
+                    result = await run_ingestion(db, query="procurement")
+                    logger.info(f"✅ Live ingestion: {result.get('new', 0)} tenders, {result.get('clauses_learned', 0)} clauses")
+                except Exception as ing_err:
+                    logger.warning(f"⚠️ Live ingestion failed (reference data available): {ing_err}")
         finally:
             db.close()
     except Exception as e:
