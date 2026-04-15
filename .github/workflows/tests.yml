@@ -42,19 +42,5 @@ jobs:
         run: |
           pytest tests/ -v --tb=short || true
 
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      
-      - name: Deploy to FastAPI.com
-        env:
-          FASTAPI_TOKEN: ${{ secrets.FASTAPI_TOKEN }}
-        run: |
-          git remote add fastapi https://x-token-auth:${FASTAPI_TOKEN}@git.fastapi.com/lexrisk-api.git
-          git push -f fastapi main
+  # Deploy is handled manually on VPS:
+  #   cd /opt/lexara-api && git pull origin main && docker compose restart api
