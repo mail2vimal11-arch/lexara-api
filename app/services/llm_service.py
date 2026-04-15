@@ -22,7 +22,20 @@ async def analyze_with_claude(
     mode: str = "summary",
     **kwargs
 ) -> Dict[str, Any]:
-    """Call Claude with a focused prompt based on the requested tab/mode."""
+    """Call Claude with a focused prompt based on the requested tab/mode.
+    If use_local_llm is enabled, tries HuggingFace (SaulLM) first."""
+
+    # Try HuggingFace first if configured
+    if settings.use_local_llm and settings.hf_api_token and settings.hf_model_id:
+        try:
+            from app.services.hf_llm_service import analyze_with_huggingface
+            result = await analyze_with_huggingface(
+                text, contract_type, jurisdiction, mode, **kwargs
+            )
+            logger.info(f"HuggingFace ({mode}): success")
+            return result
+        except Exception as e:
+            logger.warning(f"HuggingFace failed, falling back to Claude: {e}")
 
     prompts = {
         "summary": _prompt_summary,

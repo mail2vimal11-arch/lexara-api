@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60
     ted_api_base: str = "https://api.ted.europa.eu/v3"
     ocp_api_base: str = "https://data.open-contracting.org/api/3/action"
+
+    # HuggingFace (local SLM)
+    hf_api_token: Optional[str] = None
+    hf_model_id: Optional[str] = None  # e.g. "mail2vimal11-arch/lexara-legal-saullm"
+    use_local_llm: bool = False  # Set True to prefer HuggingFace over Claude
     
     class Config:
         env_file = ".env"
