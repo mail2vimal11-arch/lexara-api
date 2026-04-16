@@ -9,6 +9,11 @@ from app.services.reference_data.compliance_clauses import COMPLIANCE_CLAUSES
 from app.services.reference_data.termination_clauses import TERMINATION_CLAUSES
 from app.services.reference_data.sector_clauses import SECTOR_CLAUSES
 from app.services.reference_data.international_clauses import INTERNATIONAL_CLAUSES
+from app.services.reference_data.commercial_clauses import COMMERCIAL_CLAUSES
+from app.services.reference_data.employment_clauses import EMPLOYMENT_CLAUSES
+from app.services.reference_data.realproperty_clauses import REALPROPERTY_CLAUSES
+from app.services.reference_data.litigation_clauses import LITIGATION_CLAUSES
+from app.services.reference_data.governance_clauses import GOVERNANCE_CLAUSES
 
 ALL_REFERENCE_CLAUSES = (
     CORE_CLAUSES
@@ -21,4 +26,9 @@ ALL_REFERENCE_CLAUSES = (
     + TERMINATION_CLAUSES
     + SECTOR_CLAUSES
     + INTERNATIONAL_CLAUSES
+    + COMMERCIAL_CLAUSES
+    + EMPLOYMENT_CLAUSES
+    + REALPROPERTY_CLAUSES
+    + LITIGATION_CLAUSES
+    + GOVERNANCE_CLAUSES
 )
