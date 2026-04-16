@@ -44,14 +44,9 @@ async def list_tenders(
     """List ingested tenders with optional source/country filters.
     Seeds reference tenders and attempts live ingestion if table is empty."""
     if db.query(Tender).count() == 0:
-        # Always seed reference tenders first so the panel is never empty
+        # Seed reference tenders instantly — no external API calls
         from app.services.tender_seed import seed_tenders
         seed_tenders(db)
-        # Then try live ingestion (best-effort)
-        try:
-            await run_ingestion(db, query="procurement")
-        except Exception:
-            pass  # Reference tenders already available
 
     q = db.query(Tender)
     if source:

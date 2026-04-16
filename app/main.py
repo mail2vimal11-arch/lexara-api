@@ -45,17 +45,9 @@ async def lifespan(app: FastAPI):
             bootstrap_index_from_db(db)
             logger.info("✅ FAISS index ready")
 
-            # Also try live ingestion from TED/OCP (best-effort)
-            from app.models.tender import Tender
-            live_count = db.query(Tender).filter(Tender.source != "Reference").count()
-            if live_count == 0:
-                try:
-                    logger.info("📡 Attempting live ingestion from TED + OCP...")
-                    from app.ingestion.pipeline import run_ingestion
-                    result = await run_ingestion(db, query="procurement")
-                    logger.info(f"✅ Live ingestion: {result.get('new', 0)} tenders, {result.get('clauses_learned', 0)} clauses")
-                except Exception as ing_err:
-                    logger.warning(f"⚠️ Live ingestion failed (reference data available): {ing_err}")
+            # Skip live ingestion at startup — it blocks the app for 60-180s
+            # when TED/OCP APIs are down. Reference tenders are already seeded.
+            # Live ingestion runs on-demand via POST /v1/procurement/ingestion/run
         finally:
             db.close()
     except Exception as e:

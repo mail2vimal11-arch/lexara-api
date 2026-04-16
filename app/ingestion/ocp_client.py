@@ -21,7 +21,7 @@ HEADERS = {
 }
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+@retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=1, max=5))
 async def fetch_ocp_data(query: str = "tender", rows: int = 50) -> list[dict]:
     """
     Fetch procurement notices from the OCP CKAN data registry.
@@ -36,7 +36,7 @@ async def fetch_ocp_data(query: str = "tender", rows: int = 50) -> list[dict]:
     """
     params = {"q": query, "rows": rows}
 
-    async with httpx.AsyncClient(timeout=30.0, headers=HEADERS) as client:
+    async with httpx.AsyncClient(timeout=10.0, headers=HEADERS) as client:
         try:
             response = await client.get(BASE_URL, params=params)
             response.raise_for_status()

@@ -33,7 +33,7 @@ def _parse_date(val: Optional[str]) -> Optional[datetime]:
         return None
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+@retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=1, max=5))
 async def fetch_ted_data(query: str = "IT services", page: int = 1, page_size: int = 20) -> list[dict]:
     """
     Search for procurement notices on TED.
@@ -54,7 +54,7 @@ async def fetch_ted_data(query: str = "IT services", page: int = 1, page_size: i
         "fields": ["ND", "TI", "PC", "AC", "DT", "TVH", "OJD", "CY", "AU"],
     }
 
-    async with httpx.AsyncClient(timeout=30.0, headers=HEADERS) as client:
+    async with httpx.AsyncClient(timeout=10.0, headers=HEADERS) as client:
         try:
             response = await client.post(SEARCH_URL, json=payload)
             response.raise_for_status()
