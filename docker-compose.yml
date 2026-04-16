@@ -30,6 +30,9 @@ services:
       - "traefik.http.routers.lexara-api.entrypoints=websecure"
       - "traefik.http.routers.lexara-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.lexara-api.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.api-timeout.buffering.maxResponseBodyBytes=0"
+      - "traefik.http.routers.lexara-api.middlewares=api-timeout"
+      - "traefik.http.services.lexara-api.loadbalancer.responseforwarding.flushinterval=1s"
       - "traefik.docker.network=traefik-public"
 
   db:
