@@ -70,9 +70,107 @@ SACC_INSURANCE_TRAINING = [
 
 # ── Combined export ──────────────────────────────────────────
 
+# ── Chain-of-Thought Insurance Reasoning ─────────────────────
+
+INSURANCE_COT_TRAINING = [
+    {
+        "instruction": "Determine insurance requirements for a cloud-based payroll system procurement.",
+        "input": "Contract Value: $500k. Data Type: PII and Financial. Risk: High impact if data is breached.",
+        "output": '{"reasoning": "The primary risk is digital data loss and financial error, not physical injury. The system processes PII (names, SINs, addresses) and financial data (salaries, bank accounts) for potentially thousands of employees. A breach could trigger mandatory PIPEDA notification, class action litigation, and regulatory fines. Therefore, Cyber Liability is prioritized over high CGL.", "requirements": [{"type": "Cyber Liability", "limit": "$5,000,000", "rationale": "PII volume and financial data sensitivity demand high cyber limits"}, {"type": "Professional Liability (E&O)", "limit": "$2,000,000", "rationale": "Payroll calculation errors could cause direct financial loss"}, {"type": "Commercial General Liability (CGL)", "limit": "$1,000,000", "rationale": "Minimal physical risk — standard minimum sufficient"}], "priority_order": "Cyber > E&O > CGL"}'
+    },
+    {
+        "instruction": "Determine insurance requirements for a janitorial services tender.",
+        "input": "Contract Value: $50k. Environment: Public Government Office. Risk: Slip and fall; property damage.",
+        "output": '{"reasoning": "Risk is primarily physical and occupational. No sensitive data handling or professional advice involved. Cleaning staff have after-hours unsupervised access to government offices containing documents and equipment, creating theft/dishonesty risk. Workers are exposed to chemical cleaning agents and physical hazards (wet floors, ladders).", "requirements": [{"type": "Commercial General Liability (CGL)", "limit": "$2,000,000 per occurrence", "rationale": "Slip-and-fall and property damage are primary third-party risks"}, {"type": "Workers Compensation", "limit": "Statutory", "rationale": "Mandatory for all employees — chemical exposure and physical hazards"}, {"type": "Fidelity Bond", "limit": "$50,000", "rationale": "Unsupervised access to government offices requires employee dishonesty coverage"}], "priority_order": "CGL > Workers Comp > Fidelity"}'
+    },
+    {
+        "instruction": "Determine insurance requirements for a structural engineering bridge inspection.",
+        "input": "Contract Value: $1.2M. Risk: Catastrophic structural failure from missed defect; professional negligence.",
+        "output": '{"reasoning": "High professional indemnity risk. If the engineer misses a critical structural defect during inspection, the bridge could fail, causing deaths and massive liability. The professional opinion IS the deliverable — E&O is the critical anchor policy. Physical presence on bridge sites also requires standard CGL and auto coverage for site vehicles.", "requirements": [{"type": "Professional Liability (E&O)", "limit": "$5,000,000", "rationale": "Catastrophic failure risk from missed defect — this is the primary risk vector"}, {"type": "Commercial General Liability (CGL)", "limit": "$5,000,000", "rationale": "On-site work on active highway infrastructure with public exposure"}, {"type": "Automobile Liability", "limit": "$2,000,000", "rationale": "Inspection vehicles operating on highway right-of-way"}], "priority_order": "E&O > CGL > Auto"}'
+    },
+    {
+        "instruction": "Determine insurance requirements for a military base security guard services contract.",
+        "input": "Contract Value: $3.5M/year. Environment: DND facility with restricted areas. Guards are armed. Personnel require Secret clearance.",
+        "output": '{"reasoning": "Armed security at a military facility creates elevated bodily injury and wrongful act risk. Guards carry firearms and have authority to detain — this requires specific coverage for assault, battery, and wrongful detention. The military environment means potential exposure to classified information and restricted materials.", "requirements": [{"type": "Commercial General Liability (CGL)", "limit": "$10,000,000 per occurrence", "rationale": "Armed personnel with detention authority — high bodily injury risk"}, {"type": "Employers Liability", "limit": "$5,000,000", "rationale": "Guards exposed to on-duty injury risk beyond standard Workers Comp"}, {"type": "Errors & Omissions / Security Guard Liability", "limit": "$5,000,000", "rationale": "Covers wrongful detention, false arrest, assault, failure to protect"}, {"type": "Workers Compensation", "limit": "Statutory", "rationale": "Mandatory — elevated risk environment"}, {"type": "Fidelity Bond", "limit": "$500,000", "rationale": "Access to restricted military areas and classified materials"}], "priority_order": "CGL > Security Guard E&O > Fidelity > Workers Comp"}'
+    },
+]
+
+# ── Insurance Red Flags Training ─────────────────────────────
+
+INSURANCE_RED_FLAGS_TRAINING = [
+    {
+        "instruction": "Review this Certificate of Insurance for red flags. Identify all issues that could leave the Purchaser unprotected. Return JSON with each red flag, severity, and recommended action.",
+        "input": "Certificate of Insurance for IT Services Contract ($2M/year). Policies: CGL $2M aggregate (claims-made), E&O $1M per claim with $100,000 deductible, no Cyber Liability. Additional Insured: Not listed. Waiver of Subrogation: Not included. Insurer: Acme Insurance Co (AM Best: B+ VI). Policy Period: Jan 1 2024 - Jan 1 2025. Contract Period: Apr 1 2025 - Mar 31 2028. Notice of Cancellation: 10 days.",
+        "output": '{"red_flags": [{"flag": "CGL is Claims-Made instead of Occurrence", "severity": "High", "issue": "CGL should be occurrence-based. Claims-made CGL means if the policy lapses, past incidents are not covered. This is non-standard and restrictive.", "action": "Require occurrence-based CGL or mandate 3-year extended reporting period (tail)"}, {"flag": "CGL limit is Aggregate only, not Per Occurrence", "severity": "High", "issue": "A $2M aggregate limit shared across all clients means the limit could be exhausted by other claims before the Purchaser needs it. Per occurrence is the gold standard.", "action": "Require $2M PER OCCURRENCE and $2M aggregate at minimum"}, {"flag": "Missing Additional Insured endorsement", "severity": "Critical", "issue": "The Purchaser is not named as Additional Insured on the CGL. Without this, the Purchaser has no direct right to claim under the vendor\'s policy.", "action": "Reject COI — require Additional Insured endorsement naming the Purchaser"}, {"flag": "No Cyber Liability coverage", "severity": "Critical", "issue": "IT services contract handling data with NO cyber coverage. Any data breach, ransomware, or network security incident is completely uninsured.", "action": "Require Cyber Liability minimum $2M for this contract value"}, {"flag": "E&O deductible of $100,000 is excessive", "severity": "Medium", "issue": "If the vendor cannot pay the $100K deductible out-of-pocket, insurance effectively does not respond for smaller claims.", "action": "Require maximum deductible of $25,000-$50,000 or evidence of vendor\'s ability to self-insure the deductible"}, {"flag": "Policy expired before contract start", "severity": "Critical", "issue": "Policy ends Jan 1 2025 but contract starts Apr 1 2025. There is a 3-month gap with NO coverage.", "action": "Require current policy covering the full contract period. COI must show policy dates that encompass Apr 1 2025 - Mar 31 2028"}, {"flag": "No Waiver of Subrogation", "severity": "Medium", "issue": "Without waiver, the vendor\'s insurer could sue the Purchaser to recover claim payments.", "action": "Require Waiver of Subrogation in favour of the Purchaser"}, {"flag": "Insurer AM Best rating B+ VI is below minimum", "severity": "High", "issue": "A- VII is the standard minimum financial strength rating. B+ VI indicates the insurer may not have sufficient financial resources to pay large claims.", "action": "Require insurer rated A- VII or better by AM Best"}, {"flag": "Notice of Cancellation only 10 days", "severity": "Medium", "issue": "10 days is insufficient to find replacement coverage. Industry standard is 30 days.", "action": "Require 30-day prior written notice of cancellation to the Purchaser"}, {"flag": "E&O limit of $1M is below threshold", "severity": "Medium", "issue": "For a $2M/year IT contract, E&O should be at least $2M per Treasury Board guidelines.", "action": "Require E&O minimum $2M per claim and aggregate"}], "summary": {"total_flags": 10, "critical": 3, "high": 3, "medium": 4}, "verdict": "REJECT — COI has 3 critical deficiencies (no Additional Insured, no Cyber, expired policy). Do not proceed until all critical and high issues are resolved."}'
+    },
+    {
+        "instruction": "List the top 10 insurance red flags an sLM should detect when reviewing vendor insurance submissions for Canadian government procurement.",
+        "input": "",
+        "output": '{"red_flags": [{"rank": 1, "flag": "Aggregate-Only Limits (no Per Occurrence)", "why": "A $2M aggregate shared across all the vendor\'s clients could be exhausted before the Purchaser needs it. Always require per-occurrence limits.", "check": "Verify COI shows both per-occurrence AND aggregate limits"}, {"rank": 2, "flag": "Missing Additional Insured Endorsement", "why": "Without it, the Purchaser has no direct coverage under the vendor\'s policy. The Purchaser would have to sue the vendor, then the vendor claims on insurance — adding months of delay.", "check": "COI must explicitly name the Purchaser as Additional Insured on CGL"}, {"rank": 3, "flag": "Lapsed or Expired Policy Dates", "why": "A COI with an expiry date before the contract start date means zero coverage from day one.", "check": "Policy period must encompass the entire contract term including renewals"}, {"rank": 4, "flag": "Excessive Deductibles", "why": "A $100K+ deductible means the vendor pays out-of-pocket before insurance responds. If the vendor cannot afford the deductible, claims go unpaid.", "check": "Deductibles should not exceed $25K-$50K without evidence of vendor financial capacity"}, {"rank": 5, "flag": "Geographic Exclusions", "why": "Policy excludes the province or territory where work is performed. Common with US-based vendors whose policies exclude Canadian operations.", "check": "Verify policy territory includes all project locations"}, {"rank": 6, "flag": "Claims-Made CGL (should be Occurrence)", "why": "Claims-made CGL only covers claims filed during the policy period. If the policy lapses, past incidents become uninsured. Occurrence-based covers incidents that happen during the policy period regardless of when the claim is filed.", "check": "CGL must be occurrence-based. If claims-made, require 3+ year tail"}, {"rank": 7, "flag": "Cyber Exclusion in E&O Policy", "why": "A tech vendor whose E&O policy specifically excludes data breaches, cyber attacks, or network security incidents. This is the #1 risk for IT contracts.", "check": "For IT contracts, verify E&O does not exclude cyber events — or require separate Cyber Liability policy"}, {"rank": 8, "flag": "Insurer Below A- VII AM Best Rating", "why": "A financially weak insurer may not be able to pay claims. The vendor has insurance on paper but cannot collect when needed.", "check": "Require minimum AM Best rating of A- VII (Excellent with strong financial size)"}, {"rank": 9, "flag": "No Waiver of Subrogation", "why": "After paying a claim, the insurer could sue the Purchaser to recover the money. This defeats the purpose of requiring the vendor to carry insurance.", "check": "Require Waiver of Subrogation in favour of the Purchaser on all policies"}, {"rank": 10, "flag": "Insufficient Notice of Cancellation", "why": "If the vendor\'s policy is cancelled with only 10 days notice, the Purchaser has no time to react. Standard is 30 days prior written notice.", "check": "Require 30-day written notice of cancellation, non-renewal, or material change"}]}'
+    },
+]
+
+# ── PDF Extraction Tool (for Kaggle/VPS use) ─────────────────
+
+INSURANCE_EXTRACTION_CODE = '''
+"""
+Insurance clause extractor — scans PDFs for insurance-related content.
+Use on Kaggle or VPS to build training data from real procurement documents.
+
+Usage:
+    from app.services.reference_data.training_insurance import extract_insurance_clauses
+    clauses = extract_insurance_clauses("./tender_documents")
+"""
+import os
+import json
+
+def extract_insurance_clauses(folder_path: str, output_file: str = "insurance_clauses.jsonl") -> list:
+    """Extract insurance-related paragraphs from PDFs in a folder."""
+    try:
+        import fitz  # PyMuPDF
+    except ImportError:
+        print("Install PyMuPDF: pip install PyMuPDF")
+        return []
+
+    keywords = [
+        "insurance", "liability", "indemnification", "policy", "coverage",
+        "additional insured", "waiver of subrogation", "certificate of insurance",
+        "deductible", "aggregate", "per occurrence", "workers compensation",
+        "errors and omissions", "professional liability", "cyber liability",
+        "fidelity bond", "builders risk", "pollution liability",
+    ]
+
+    extracted = []
+    for file in os.listdir(folder_path):
+        if not file.lower().endswith(".pdf"):
+            continue
+        try:
+            doc = fitz.open(os.path.join(folder_path, file))
+            full_text = "".join(page.get_text() for page in doc)
+            paragraphs = full_text.split("\\n\\n")
+            for para in paragraphs:
+                para_lower = para.lower().strip()
+                if len(para_lower) < 30:
+                    continue
+                if any(kw in para_lower for kw in keywords):
+                    extracted.append({"source": file, "clause": para.strip()})
+        except Exception as e:
+            print(f"Error processing {file}: {e}")
+
+    if output_file:
+        with open(output_file, "w") as f:
+            for entry in extracted:
+                f.write(json.dumps(entry) + "\\n")
+        print(f"Extracted {len(extracted)} insurance clauses to {output_file}")
+
+    return extracted
+'''
+
 ALL_INSURANCE_TRAINING = (
     INSURANCE_RISK_MAPPING_TRAINING
     + INSURANCE_THRESHOLD_TRAINING
     + INSURANCE_TERMINOLOGY_TRAINING
     + SACC_INSURANCE_TRAINING
+    + INSURANCE_COT_TRAINING
+    + INSURANCE_RED_FLAGS_TRAINING
 )
