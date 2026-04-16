@@ -16,9 +16,9 @@ def generate_cuad_training_data(max_examples=200):
     import json
 
     try:
-        ds = load_dataset("cuad", split="test")
+        ds = load_dataset("unitaryai/cuad", split="train")
     except Exception:
-        ds = load_dataset("theatticusproject/cuad", split="test")
+        return []
 
     # CUAD's 41 clause categories
     CUAD_LABELS = [
@@ -86,10 +86,7 @@ def generate_maud_training_data(max_examples=100):
     try:
         ds = load_dataset("theatticusproject/maud", split="train")
     except Exception:
-        try:
-            ds = load_dataset("theatticusproject/maud", "maud", split="train")
-        except Exception:
-            return []
+        return []
 
     training_data = []
     seen = set()
