@@ -15,7 +15,10 @@ def generate_cuad_training_data(max_examples=200):
     from datasets import load_dataset
     import json
 
-    ds = load_dataset("cuad", split="test", trust_remote_code=True)
+    try:
+        ds = load_dataset("cuad", split="test")
+    except Exception:
+        ds = load_dataset("theatticusproject/cuad", split="test")
 
     # CUAD's 41 clause categories
     CUAD_LABELS = [
@@ -81,11 +84,10 @@ def generate_maud_training_data(max_examples=100):
     import json
 
     try:
-        ds = load_dataset("theatticusproject/maud", split="train", trust_remote_code=True)
+        ds = load_dataset("theatticusproject/maud", split="train")
     except Exception:
-        # MAUD may require specific config
         try:
-            ds = load_dataset("theatticusproject/maud", "maud", split="train", trust_remote_code=True)
+            ds = load_dataset("theatticusproject/maud", "maud", split="train")
         except Exception:
             return []
 
