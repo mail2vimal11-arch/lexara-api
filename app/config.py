@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     debug: bool = False
     environment: str = "production"
-    secret_key: str = "change-me-in-production"
+    secret_key: str
     port: int = 8000
     log_level: str = "INFO"
     
@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     enable_webhooks: bool = True
 
     # Procurement AI
-    jwt_secret: str = "change-this-jwt-secret"
+    jwt_secret: str
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
     ted_api_base: str = "https://api.ted.europa.eu/v3"

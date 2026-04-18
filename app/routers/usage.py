@@ -1,10 +1,11 @@
 """API usage and billing endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timedelta
 import logging
 
 from app.database.session import get_db
+from app.security import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -12,12 +13,12 @@ router = APIRouter()
 
 @router.get("/usage")
 async def get_usage(
-    authorization: str = Header(None),
-    db = Depends(get_db)
+    db=Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Get API usage and quota information.
-    
+
     Returns:
     - Current plan
     - Analyses used this month
@@ -25,10 +26,6 @@ async def get_usage(
     - Reset date
     - Overage charges
     """
-    
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
-    
     try:
         # TODO: Implement usage lookup from database
         return {

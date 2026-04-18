@@ -34,7 +34,7 @@ class CitationFinding:
 #   - Abbreviation must match known federal/provincial codes
 #   - Chapter format: "c" followed by letter-number or number
 
-FEDERAL_STATUTE_CODES = r"RSC|SC|SRC"
+FEDERAL_STATUTE_CODES = r"RSC|SC|LRC"
 PROVINCIAL_STATUTE_CODES = (
     r"RSA|SA|RSO|SO|SBC|RSBC|RSNB|SNB|RSNS|SNS"
     r"|RSPEI|SPEI|RSM|SM|RSS|SS|RSQ|SQ|RSNL|SNL"
@@ -55,6 +55,37 @@ STATUTE_RE = re.compile(
     r"(\d{4})"                                                                # Year
     r",\s*c\s+"                                                               # ", c "
     r"([A-Z]?\d+[-\.\d]*|[A-Z]-\d+)",                                        # Chapter
+    re.UNICODE,
+)
+
+# Secondary pattern: common Canadian statute names referenced without a full RSC/SO citation.
+# Catches standalone references like "the Competition Act" or "CFTA".
+COMMON_STATUTE_NAMES = [
+    "Competition Act",
+    "Income Tax Act",
+    "Privacy Act",
+    "Personal Information Protection and Electronic Documents Act",
+    "PIPEDA",
+    "Canadian Human Rights Act",
+    "Employment Insurance Act",
+    "Canada Labour Code",
+    "Financial Administration Act",
+    "Lobbying Act",
+    "Access to Information Act",
+    "Official Languages Act",
+    "Customs Act",
+    "Excise Tax Act",
+    "Bankruptcy and Insolvency Act",
+    "Copyright Act",
+    "Patent Act",
+    "Trade-marks Act",
+    "CFTA",
+    "CUSMA",
+    "CETA",
+]
+
+COMMON_STATUTE_RE = re.compile(
+    r"\b(" + "|".join(re.escape(name) for name in COMMON_STATUTE_NAMES) + r")\b",
     re.UNICODE,
 )
 
@@ -229,6 +260,19 @@ def validate_citations(text: str) -> list[CitationFinding]:
 
     for match in STATUTE_RE.finditer(text):
         add(validate_statute(match, text))
+
+    for match in COMMON_STATUTE_RE.finditer(text):
+        span = (match.start(), match.end())
+        if span not in seen_spans:
+            seen_spans.add(span)
+            findings.append(CitationFinding(
+                raw=match.group(0),
+                kind="statute",
+                valid=True,
+                warnings=["⚠️ Ensure the Act title is italicised in the final document."],
+                start=match.start(),
+                end=match.end(),
+            ))
 
     for match in REGULATION_RE.finditer(text):
         add(validate_regulation(match, text))

@@ -35,23 +35,16 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         if request.url.path in self.UNPROTECTED_ROUTES:
             return await call_next(request)
         
-        # Require auth for API routes
+        # Require auth for API routes — actual JWT validation is handled
+        # by Depends(get_current_user) at the route level.
+        # Middleware only rejects requests that are missing the Bearer prefix entirely.
         if request.url.path.startswith("/v1"):
             auth_header = request.headers.get("Authorization", "")
-            
+
             if not auth_header or not auth_header.startswith("Bearer "):
                 return JSONResponse(
                     status_code=401,
-                    content={"error": "unauthorized", "message": "Invalid or missing API key"}
-                )
-            
-            # TODO: Validate API key against database
-            # For now, just check format
-            api_key = auth_header.replace("Bearer ", "")
-            if not api_key or len(api_key) < 10:
-                return JSONResponse(
-                    status_code=401,
-                    content={"error": "unauthorized", "message": "Invalid API key format"}
+                    content={"error": "unauthorized", "message": "Invalid or missing Authorization header"}
                 )
         
         response = await call_next(request)

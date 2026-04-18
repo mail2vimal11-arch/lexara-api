@@ -17,7 +17,6 @@ class RegisterRequest(BaseModel):
     username: str
     email: EmailStr
     password: str
-    role: str = "procurement"   # procurement | legal | admin
 
 
 class LoginRequest(BaseModel):
@@ -35,11 +34,11 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
         username=req.username,
         email=req.email,
         hashed_password=hash_password(req.password),
-        role=req.role,
+        role="procurement",
     )
     db.add(user)
     db.commit()
-    log_action(db, "USER_REGISTERED", {"username": req.username, "role": req.role})
+    log_action(db, "USER_REGISTERED", {"username": req.username, "role": "procurement"})
     return {"message": "User created", "username": req.username}
 
 

@@ -58,7 +58,7 @@ async def analyze_with_claude(
                     "content-type": "application/json"
                 },
                 json={
-                    "model": "claude-haiku-4-5",
+                    "model": "claude-haiku-4-5-20241022",
                     "max_tokens": 2048,
                     "system": SYSTEM_PROMPT,
                     "messages": [{"role": "user", "content": prompt}]
@@ -66,7 +66,10 @@ async def analyze_with_claude(
             )
 
             if response.status_code != 200:
-                logger.error(f"Claude API error: {response.text}")
+                logger.error(
+                    f"Claude API error: status={response.status_code} "
+                    f"body={response.text[:1000]}"
+                )
                 raise Exception(f"Claude API error: {response.status_code}")
 
             result = response.json()

@@ -39,9 +39,9 @@ services:
     image: postgres:16-alpine
     restart: always
     environment:
-      POSTGRES_USER: lexara
-      POSTGRES_PASSWORD: lexara123
-      POSTGRES_DB: lexaradb
+      POSTGRES_USER: ${POSTGRES_DB_USER:-lexara}
+      POSTGRES_PASSWORD: ${POSTGRES_DB_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_NAME:-lexaradb}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

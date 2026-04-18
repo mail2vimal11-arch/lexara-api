@@ -1,9 +1,11 @@
 """File upload endpoint — extracts text from PDF, DOCX, or TXT."""
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Header
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from pydantic import BaseModel
 import io
 import logging
+
+from app.security import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -28,16 +30,13 @@ class UploadResponse(BaseModel):
 @router.post("/upload", response_model=UploadResponse)
 async def upload_contract(
     file: UploadFile = File(...),
-    authorization: str = Header(None)
+    current_user=Depends(get_current_user),
 ):
     """
     Upload a contract file (PDF, DOCX, TXT) and extract its text.
     Returns the extracted text ready to pass into analysis endpoints.
     Max size: 10MB.
     """
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
-
     # Read file
     content = await file.read()
 

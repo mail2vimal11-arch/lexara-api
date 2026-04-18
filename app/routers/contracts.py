@@ -1,6 +1,6 @@
 """Contract analysis endpoints - tab-based approach."""
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 import logging
@@ -9,6 +9,7 @@ import uuid
 
 from app.database.session import get_db
 from app.services.llm_service import analyze_with_claude
+from app.security import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -22,9 +23,7 @@ class ContractRequest(BaseModel):
     jurisdiction: Optional[str] = "ON"
 
 
-def _validate(request: ContractRequest, authorization: str):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
+def _validate_text(request: ContractRequest):
     if len(request.text) < 100:
         raise HTTPException(status_code=400, detail="Contract text must be at least 100 characters")
     if len(request.text) > 50000:
@@ -46,14 +45,14 @@ class SummaryResponse(BaseModel):
 @router.post("/summary", response_model=SummaryResponse)
 async def get_summary(
     request: ContractRequest,
-    authorization: str = Header(None),
-    db=Depends(get_db)
+    db=Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Tab 1 — Plain-English summary of the contract.
     Fast, cheap, ~500 tokens.
     """
-    _validate(request, authorization)
+    _validate_text(request)
     start = datetime.utcnow()
     try:
         result = await analyze_with_claude(
@@ -92,14 +91,14 @@ class RiskScoreResponse(BaseModel):
 @router.post("/risk-score", response_model=RiskScoreResponse)
 async def get_risk_score(
     request: ContractRequest,
-    authorization: str = Header(None),
-    db=Depends(get_db)
+    db=Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Tab 2 — Quantified risk score 0–100 with category breakdown.
     Categories: liability, data_protection, termination, ip_ownership, warranty.
     """
-    _validate(request, authorization)
+    _validate_text(request)
     start = datetime.utcnow()
     try:
         result = await analyze_with_claude(
@@ -143,14 +142,14 @@ class KeyRisksResponse(BaseModel):
 @router.post("/key-risks", response_model=KeyRisksResponse)
 async def get_key_risks(
     request: ContractRequest,
-    authorization: str = Header(None),
-    db=Depends(get_db)
+    db=Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Tab 3 — Detailed list of legal risks with severity and recommendations.
     Severities: critical, high, medium, low.
     """
-    _validate(request, authorization)
+    _validate_text(request)
     start = datetime.utcnow()
     try:
         result = await analyze_with_claude(
@@ -189,14 +188,14 @@ class MissingClausesResponse(BaseModel):
 @router.post("/missing-clauses", response_model=MissingClausesResponse)
 async def get_missing_clauses(
     request: ContractRequest,
-    authorization: str = Header(None),
-    db=Depends(get_db)
+    db=Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Tab 4 — Clauses that are absent but should be present.
     Importance: critical, high, medium, low.
     """
-    _validate(request, authorization)
+    _validate_text(request)
     start = datetime.utcnow()
     try:
         result = await analyze_with_claude(
@@ -221,9 +220,11 @@ async def get_missing_clauses(
 
 class ExtractedClause(BaseModel):
     type: str
+    severity: str
+    original: str
+    revised: str
+    rationale: str
     section: Optional[str] = None
-    summary: str
-    confidence: float
 
 
 class ExtractClausesResponse(BaseModel):
@@ -236,14 +237,14 @@ class ExtractClausesResponse(BaseModel):
 @router.post("/extract-clauses", response_model=ExtractClausesResponse)
 async def extract_clauses(
     request: ContractRequest,
-    authorization: str = Header(None),
-    db=Depends(get_db)
+    db=Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Tab 5 — Extract and categorize existing clauses.
     Types: liability, termination, confidentiality, indemnification, warranty, ip.
     """
-    _validate(request, authorization)
+    _validate_text(request)
     start = datetime.utcnow()
     try:
         result = await analyze_with_claude(

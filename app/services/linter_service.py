@@ -112,7 +112,7 @@ def flag_legalese(text: str) -> list[dict]:
 # ── 2. Passive Voice ──────────────────────────────────────────────────────────
 
 PASSIVE_PATTERN = re.compile(
-    r"\b(is|are|was|were|be|been|being|shall be|will be|must be|should be|may be|can be)"
+    r"\b(shall be|will be|must be|should be|may be|can be|is|are|was|were|be|been|being)"
     r"\s+(\w+ed|awarded|done|given|made|paid|provided|required|sent|shown|taken|used|written)\b",
     re.IGNORECASE,
 )
@@ -280,6 +280,45 @@ def flag_gendered_language(text: str) -> list[dict]:
     return findings
 
 
+# ── 5. Vague Language ─────────────────────────────────────────────────────────
+
+VAGUE_PHRASES = [
+    r"\breasonable timeframe\b",
+    r"\breasonable time\b",
+    r"\breasonable period\b",
+    r"\bas soon as practicable\b",
+    r"\bwithout undue delay\b",
+    r"\bpromptly\b",
+    r"\bin due course\b",
+    r"\bat the earliest opportunity\b",
+    r"\bbest efforts\b",
+    r"\bgood faith efforts\b",
+    r"\btimely manner\b",
+    r"\bas soon as possible\b",
+]
+
+
+def flag_vague_language(text: str) -> list[dict]:
+    findings = []
+    for pattern in VAGUE_PHRASES:
+        for match in re.finditer(pattern, text, re.IGNORECASE):
+            s, e, sentence = _extract_sentence(text, match.start(), match.end())
+            findings.append({
+                "type": "vague_language",
+                "term": match.group(),
+                "start": match.start(),
+                "end": match.end(),
+                "suggestion": (
+                    f'Replace "{match.group()}" with a specific, measurable timeframe or '
+                    "obligation (e.g., 'within 5 Business Days')."
+                ),
+                "original": sentence[:300],
+                "revised": None,
+                "context": sentence[:300],
+            })
+    return findings
+
+
 # ── Master Lint Function ──────────────────────────────────────────────────────
 
 def lint(text: str) -> dict:
@@ -288,4 +327,5 @@ def lint(text: str) -> dict:
         "passive_voice":    flag_passive_voice(text),
         "plural_parties":   flag_plural_parties(text),
         "gendered_language": flag_gendered_language(text),
+        "vague_language":   flag_vague_language(text),
     }

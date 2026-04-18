@@ -1,6 +1,6 @@
 """Stripe billing — checkout, webhooks, portal, plan info."""
 
-from fastapi import APIRouter, HTTPException, Header, Request, Depends
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 from typing import Optional
@@ -10,6 +10,7 @@ import json
 
 from app.config import settings
 from app.database.session import get_db
+from app.security import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -104,15 +105,12 @@ async def create_checkout(request: CheckoutRequest):
 
 
 @router.post("/portal")
-async def create_portal(authorization: str = Header(None)):
+async def create_portal(current_user=Depends(get_current_user)):
     """
     Create a Stripe Customer Portal session for billing management.
     User can update payment method, cancel, or upgrade/downgrade plan.
     """
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
-
-    # TODO: Look up stripe_customer_id from DB using the API key
+    # TODO: Look up stripe_customer_id from DB using current_user
     # For now return a helpful message
     raise HTTPException(
         status_code=501,

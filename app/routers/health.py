@@ -20,7 +20,7 @@ async def health_check():
 async def root():
     """Root endpoint."""
     return {
-        "message": "LexRisk API - AI-Powered Contract Analysis Engine",
+        "message": "LexAra API - AI-Powered Contract Analysis Engine",
         "docs": "/docs",
         "api_version": "v1"
     }
