@@ -58,7 +58,7 @@ async def analyze_with_claude(
                     "content-type": "application/json"
                 },
                 json={
-                    "model": "claude-haiku-4-5-20250514",
+                    "model": "claude-4-5-haiku-20250514",
                     "max_tokens": 2048,
                     "system": SYSTEM_PROMPT,
                     "messages": [{"role": "user", "content": prompt}]
