@@ -4,6 +4,7 @@ Calls the fine-tuned SaulLM model hosted on HuggingFace.
 Falls back to Claude API if HuggingFace is unavailable.
 """
 
+import asyncio
 import httpx
 import json
 import logging
@@ -126,9 +127,15 @@ async def analyze_with_huggingface(
             response = await client.post(url, headers=headers, json=payload)
 
             if response.status_code == 503:
-                # Model is loading — HuggingFace cold start
-                logger.warning("HuggingFace model loading, falling back to Claude")
-                raise Exception("Model loading")
+                # Model is loading — HuggingFace cold start, retry once after wait
+                estimated_time = response.json().get("estimated_time", 30)
+                wait = min(estimated_time, 60)
+                logger.info(f"HuggingFace model loading, retrying in {wait}s")
+                await asyncio.sleep(wait)
+                response = await client.post(url, headers=headers, json=payload)
+                if response.status_code == 503:
+                    logger.warning("HuggingFace still loading after retry, falling back to Claude")
+                    raise Exception("Model loading")
 
             if response.status_code != 200:
                 logger.error(f"HuggingFace API error: {response.status_code} — {response.text}")

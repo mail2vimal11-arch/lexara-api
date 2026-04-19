@@ -53,6 +53,25 @@ services:
     networks:
       - internal
 
+  hf-warmer:
+    image: curlimages/curl:latest
+    restart: always
+    env_file: .env
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        while true; do
+          curl -sf -X POST "https://api-inference.huggingface.co/models/$${HF_MODEL_ID}" \
+            -H "Authorization: Bearer $${HF_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"inputs":"Classify this clause.","parameters":{"max_new_tokens":5}}' \
+            > /dev/null 2>&1 && echo "$(date) model warm" || echo "$(date) warming model..."
+          sleep 240
+        done
+    networks:
+      - internal
+
 volumes:
   postgres_data:
 
