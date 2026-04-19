@@ -59,6 +59,11 @@ class Settings(BaseSettings):
     hf_api_token: Optional[str] = None
     hf_model_id: Optional[str] = None  # e.g. "mail2vimal11-arch/lexara-legal-saullm"
     use_local_llm: bool = False  # Set True to prefer HuggingFace over Claude
+
+    # Groq (free fast inference)
+    groq_api_key: Optional[str] = None
+    groq_model: str = "llama-3.1-8b-instant"
+    use_groq: bool = False  # Set True to prefer Groq over Claude
     
     class Config:
         env_file = ".env"

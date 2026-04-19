@@ -22,10 +22,22 @@ async def analyze_with_claude(
     mode: str = "summary",
     **kwargs
 ) -> Dict[str, Any]:
-    """Call Claude with a focused prompt based on the requested tab/mode.
-    If use_local_llm is enabled, tries HuggingFace (SaulLM) first."""
+    """Call LLM with a focused prompt based on the requested tab/mode.
+    Waterfall: Groq (free) → HuggingFace (SaulLM) → Claude (paid fallback)."""
 
-    # Try HuggingFace first if configured
+    # Tier 1: Try Groq first if configured (free, fast)
+    if settings.use_groq and settings.groq_api_key:
+        try:
+            from app.services.groq_llm_service import analyze_with_groq
+            result = await analyze_with_groq(
+                text, contract_type, jurisdiction, mode, **kwargs
+            )
+            logger.info(f"Groq ({mode}): success")
+            return result
+        except Exception as e:
+            logger.warning(f"Groq failed, trying next tier: {e}")
+
+    # Tier 2: Try HuggingFace if configured
     if settings.use_local_llm and settings.hf_api_token and settings.hf_model_id:
         try:
             from app.services.hf_llm_service import analyze_with_huggingface
@@ -36,6 +48,8 @@ async def analyze_with_claude(
             return result
         except Exception as e:
             logger.warning(f"HuggingFace failed, falling back to Claude: {e}")
+
+    # Tier 3: Claude (paid fallback)
 
     prompts = {
         "summary": _prompt_summary,
