@@ -259,8 +259,10 @@ class TestContractAnalysis:
         assert len(data["clauses"]) >= 1
         clause = data["clauses"][0]
         assert "type" in clause
-        assert "summary" in clause
-        assert "confidence" in clause
+        assert "severity" in clause
+        assert "original" in clause
+        assert "revised" in clause
+        assert "rationale" in clause
 
 
 # ─── 7. Contract Analysis — Validation Errors ───────────────────────────────

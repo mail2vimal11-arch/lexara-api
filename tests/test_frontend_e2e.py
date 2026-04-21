@@ -555,8 +555,10 @@ class TestFrontendContractAnalysis:
         assert "clauses" in data
         for c in data["clauses"]:
             assert "type" in c
-            assert "summary" in c
-            assert "confidence" in c
+            assert "severity" in c
+            assert "original" in c
+            assert "revised" in c
+            assert "rationale" in c
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     # Procurement AI
     jwt_secret: str
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 60
+    jwt_expire_minutes: int = 480  # 8 hours — legal professionals need extended sessions
     ted_api_base: str = "https://api.ted.europa.eu/v3"
     ocp_api_base: str = "https://data.open-contracting.org/api/3/action"
 

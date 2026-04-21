@@ -54,6 +54,11 @@ _mock_faiss.IndexFlatL2.return_value = _mock_faiss_index
 sys.modules["faiss"] = _mock_faiss
 sys.modules["sentence_transformers"] = MagicMock()
 
+# Stub spacy — not available on Python 3.9 in test environment
+_mock_spacy = MagicMock()
+_mock_spacy.load.side_effect = OSError("spacy model not installed")
+sys.modules["spacy"] = _mock_spacy
+
 # Patch embed_text early — the module will be imported by the app
 import app.nlp.embeddings as _emb_mod  # noqa: E402
 
@@ -278,14 +283,18 @@ MOCK_EXTRACT_CLAUSES_RESPONSE = {
         {
             "type": "termination",
             "section": "Section 2",
-            "summary": "Either party may terminate with 60 days notice or 30 days for material breach.",
-            "confidence": 0.95,
+            "severity": "medium",
+            "original": "Either party may terminate this Agreement upon sixty (60) days written notice.",
+            "revised": "Either party may end this agreement with 60 days written notice.",
+            "rationale": "Simplified language improves clarity for non-legal readers.",
         },
         {
             "type": "liability",
             "section": "Section 6",
-            "summary": "Excludes indirect damages and caps aggregate liability at 12 months of fees.",
-            "confidence": 0.93,
+            "severity": "high",
+            "original": "The total aggregate liability of either party shall not exceed the fees paid.",
+            "revised": "Neither party's total liability may exceed the fees paid.",
+            "rationale": "Plain-English rewrite removes legalese and improves readability.",
         },
     ],
     "tokens_used": 170,

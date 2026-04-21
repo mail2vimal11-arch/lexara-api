@@ -1,5 +1,7 @@
 """Audit logging service — call this for every significant action."""
 
+from __future__ import annotations
+
 from sqlalchemy.orm import Session
 from app.models.audit import AuditLog
 

@@ -4,7 +4,11 @@
    ============================================================ */
 
 const API_BASE = 'https://api.lexara.tech/v1';
-const API_KEY  = 'Bearer demo-api-key-lexara';
+
+function getAuthHeader() {
+  const token = localStorage.getItem('pai_token');
+  return token ? `Bearer ${token}` : null;
+}
 
 /* ── Nav toggle (mobile) ───────────────────────────────────── */
 const navToggle = document.querySelector('.nav-toggle');
@@ -112,16 +116,31 @@ async function runAnalysis(tab, payload) {
     <span>Analyzing contract…</span>
   </div>`;
 
+  const authHeader = getAuthHeader();
+  if (!authHeader) {
+    panel.innerHTML = `<div class="result-error" role="alert">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20" aria-hidden="true">
+        <circle cx="10" cy="10" r="8"/><path d="M10 6v4M10 14v.5"/>
+      </svg>
+      Please <a href="/procurement-intelligence.html" style="color:inherit;text-decoration:underline">sign in</a> to use contract analysis.
+    </div>`;
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/${tab}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': API_KEY },
+      headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
       body:    JSON.stringify(payload),
     });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+      const detail = err.detail || `HTTP ${res.status}`;
+      if (res.status === 401 && detail.includes('expired')) {
+        throw new Error('Your session has expired. Please sign in again.');
+      }
+      throw new Error(detail);
     }
 
     const data = await res.json();
