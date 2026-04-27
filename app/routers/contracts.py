@@ -9,6 +9,7 @@ import uuid
 
 from app.database.session import get_db
 from app.services.llm_service import analyze_with_claude
+from app.services.audit_service import log_action
 from app.security import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -62,8 +63,12 @@ async def get_summary(
             mode="summary"
         )
         ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        aid = f"anal_{uuid.uuid4().hex[:12]}"
+        log_action(db, "CONTRACT_SUMMARY",
+                   {"analysis_id": aid, "tokens": result.get("tokens_used", 0), "ms": ms},
+                   user_id=str(current_user.id))
         return SummaryResponse(
-            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            analysis_id=aid,
             summary=result.get("summary", ""),
             contract_type=result.get("contract_type", request.contract_type),
             jurisdiction=result.get("jurisdiction", request.jurisdiction),
@@ -108,8 +113,12 @@ async def get_risk_score(
             mode="risk_score"
         )
         ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        aid = f"anal_{uuid.uuid4().hex[:12]}"
+        log_action(db, "CONTRACT_RISK_SCORE",
+                   {"analysis_id": aid, "score": result.get("overall_risk_score"), "ms": ms},
+                   user_id=str(current_user.id))
         return RiskScoreResponse(
-            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            analysis_id=aid,
             overall_risk_score=result.get("overall_risk_score", 50),
             risk_level=result.get("risk_level", "medium"),
             scores_by_category=result.get("scores_by_category", {}),
@@ -159,8 +168,12 @@ async def get_key_risks(
             mode="key_risks"
         )
         ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        aid = f"anal_{uuid.uuid4().hex[:12]}"
+        log_action(db, "CONTRACT_KEY_RISKS",
+                   {"analysis_id": aid, "count": len(result.get("key_risks", [])), "ms": ms},
+                   user_id=str(current_user.id))
         return KeyRisksResponse(
-            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            analysis_id=aid,
             key_risks=result.get("key_risks", []),
             tokens_used=result.get("tokens_used", 0),
             processing_time_ms=ms
@@ -205,8 +218,12 @@ async def get_missing_clauses(
             mode="missing_clauses"
         )
         ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        aid = f"anal_{uuid.uuid4().hex[:12]}"
+        log_action(db, "CONTRACT_MISSING_CLAUSES",
+                   {"analysis_id": aid, "count": len(result.get("missing_clauses", [])), "ms": ms},
+                   user_id=str(current_user.id))
         return MissingClausesResponse(
-            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            analysis_id=aid,
             missing_clauses=result.get("missing_clauses", []),
             tokens_used=result.get("tokens_used", 0),
             processing_time_ms=ms
@@ -254,8 +271,12 @@ async def extract_clauses(
             mode="extract_clauses"
         )
         ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        aid = f"anal_{uuid.uuid4().hex[:12]}"
+        log_action(db, "CONTRACT_EXTRACT_CLAUSES",
+                   {"analysis_id": aid, "count": len(result.get("clauses", [])), "ms": ms},
+                   user_id=str(current_user.id))
         return ExtractClausesResponse(
-            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            analysis_id=aid,
             clauses=result.get("clauses", []),
             tokens_used=result.get("tokens_used", 0),
             processing_time_ms=ms

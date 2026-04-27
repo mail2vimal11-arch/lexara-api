@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from sqlalchemy.orm import Session
 from app.models.audit import AuditLog
+
+logger = logging.getLogger(__name__)
 
 
 def log_action(
@@ -16,6 +19,9 @@ def log_action(
 ) -> None:
     """
     Write an audit log entry.
+
+    Commit failures are non-fatal — a warning is logged and the session is
+    rolled back so it remains usable for the caller's own subsequent writes.
 
     Args:
         db:         Database session.
@@ -33,4 +39,8 @@ def log_action(
         source_url=source_url,
     )
     db.add(entry)
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.warning(f"Audit log write failed (non-fatal): {e}")

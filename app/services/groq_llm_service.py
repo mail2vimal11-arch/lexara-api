@@ -114,7 +114,10 @@ async def analyze_with_groq(
                 raise Exception(f"Groq API error: {response.status_code}")
 
             result = response.json()
-            content = result["choices"][0]["message"]["content"].strip()
+            choices = result.get("choices", [])
+            if not choices:
+                raise Exception("Groq returned empty choices array")
+            content = choices[0]["message"]["content"].strip()
             tokens_used = result.get("usage", {}).get("total_tokens", 0)
 
             # Extract JSON

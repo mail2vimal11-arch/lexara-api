@@ -16,6 +16,7 @@ from app.ingestion.ted_client import fetch_ted_data
 from app.models.tender import Tender
 from app.models.audit import AuditLog
 from app.ingestion.learning import learn_from_tender
+from app.nlp.search import add_clause_to_index
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,8 @@ async def run_ingestion(db: Session, query: str = "procurement") -> dict:
     Returns summary dict with counts.
     """
     results = {"ocp": 0, "ted": 0, "new": 0, "skipped": 0, "clauses_learned": 0, "errors": []}
+    # Accumulate clauses to add to FAISS only after db.commit() succeeds
+    _faiss_queue: list[tuple[str, str, str]] = []  # (clause_id, full_text, clause_type)
 
     # Fetch from all sources
     raw: list[dict] = []
@@ -90,14 +93,27 @@ async def run_ingestion(db: Session, query: str = "procurement") -> dict:
         db.add(tender)
         db.flush()   # get the PK without committing yet
 
-        # Learn clauses from this tender's description
+        # Learn clauses from this tender's description.
+        # learn_from_tender adds clause rows to the DB session but does NOT
+        # update FAISS — that happens below after db.commit() to keep them in sync.
         if tender.description:
             learned = learn_from_tender(db, tender)
             results["clauses_learned"] += len(learned)
+            _faiss_queue.extend(
+                (c["clause_id"], c["full_text"], c["clause_type"])
+                for c in learned
+            )
 
         results["new"] += 1
 
     db.commit()
+
+    # Add to FAISS only after a successful commit so DB and index stay in sync
+    for clause_id, full_text, clause_type in _faiss_queue:
+        try:
+            add_clause_to_index(clause_id, full_text, clause_type)
+        except Exception as e:
+            logger.warning(f"FAISS index failed for clause {clause_id}: {e}")
 
     # Audit log
     audit = AuditLog(

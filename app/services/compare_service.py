@@ -42,12 +42,32 @@ def compare_excel_contracts(file1_bytes: bytes, file2_bytes: bytes) -> dict:
     merge_key = "id" if "id" in df1.columns and "id" in df2.columns else None
 
     if merge_key:
-        merged = df1.merge(df2, on=merge_key, suffixes=("_a", "_b"))
+        # Full outer merge on shared key — unmatched rows from either side are included
+        merged = df1.merge(df2, on=merge_key, how="outer", suffixes=("_a", "_b"))
     else:
-        merged = df1.join(df2, lsuffix="_a", rsuffix="_b")
+        # Full outer join on row index — rows beyond the shorter file are not silently dropped
+        merged = df1.join(df2, lsuffix="_a", rsuffix="_b", how="outer")
 
     mismatches = []
-    for _, row in merged.iterrows():
+    only_in_a = 0   # rows present in file_a but missing from file_b
+    only_in_b = 0   # rows present in file_b but missing from file_a
+
+    for idx, row in merged.iterrows():
+        # Detect rows that exist in only one file (all _a cols NaN or all _b cols NaN)
+        a_fields = [f"{field}_a" for field in COMPARE_FIELDS if f"{field}_a" in row.index]
+        b_fields = [f"{field}_b" for field in COMPARE_FIELDS if f"{field}_b" in row.index]
+        a_all_nan = a_fields and all(str(row[c]).strip() == "nan" for c in a_fields)
+        b_all_nan = b_fields and all(str(row[c]).strip() == "nan" for c in b_fields)
+
+        if b_all_nan:
+            only_in_a += 1
+            mismatches.append({"field": "__row__", "value_a": f"row {idx} only in file A", "value_b": None})
+            continue
+        if a_all_nan:
+            only_in_b += 1
+            mismatches.append({"field": "__row__", "value_a": None, "value_b": f"row {idx} only in file B"})
+            continue
+
         for field in COMPARE_FIELDS:
             col_a = f"{field}_a"
             col_b = f"{field}_b"
@@ -63,6 +83,8 @@ def compare_excel_contracts(file1_bytes: bytes, file2_bytes: bytes) -> dict:
 
     return {
         "rows_compared": len(merged),
+        "rows_only_in_file_a": only_in_a,
+        "rows_only_in_file_b": only_in_b,
         "mismatches": mismatches,
         "match_count": len(merged) - len(mismatches),
     }

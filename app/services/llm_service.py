@@ -87,8 +87,11 @@ async def analyze_with_claude(
                 raise Exception(f"Claude API error: {response.status_code}")
 
             result = response.json()
-            tokens_used = result["usage"]["output_tokens"]
-            content = result["content"][0]["text"].strip()
+            content_list = result.get("content", [])
+            if not content_list:
+                raise Exception("Claude returned empty content array")
+            tokens_used = result.get("usage", {}).get("output_tokens", 0)
+            content = content_list[0].get("text", "").strip()
 
             # Strip markdown code fences if present
             if "```json" in content:
