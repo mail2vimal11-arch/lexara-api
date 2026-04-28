@@ -36,7 +36,7 @@ from app.services.audit_service import log_action
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/v1/negotiation", tags=["Negotiation"])
+router = APIRouter(tags=["Negotiation"])
 
 
 # ---------------------------------------------------------------------------

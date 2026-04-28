@@ -6,6 +6,8 @@
 **QA Lead:** Claude (Opus 4.7)
 **Scope:** Feature 2 (SOW Workbench) + Feature 6 (Clause Negotiation Simulator) + regression on existing surface
 
+> **Update — fixes applied in this same branch after the initial audit.** P0-1 has been corrected, six routing smoke tests added, and a new finding (P1-3, formerly half of P0-2) was uncovered while validating the fix. The merge gate has flipped to **🟡 APPROVE WITH CONDITIONS**. See "Post-fix verification" at the bottom.
+
 ---
 
 ## Executive summary
@@ -227,3 +229,77 @@ Status: PASS for Lexara deps (SKIP for Supabase noise — P3-1)
 | P2 / P3 items | ⏭ Track post-merge |
 
 Once the two P0 lines are fixed and one smoke test added, this branch is **APPROVE**. Until then: **🔴 BLOCK**.
+
+---
+
+## Post-fix verification (same-branch follow-up)
+
+The two P0 items the audit flagged have been addressed in this branch.
+
+### Changes
+
+1. **P0-1 fix** — [app/routers/negotiation_routes.py:39](app/routers/negotiation_routes.py:39): dropped `prefix="/v1/negotiation"` from the `APIRouter()` constructor. The single `/v1/negotiation` prefix now lives only on `app.include_router(...)` in [app/main.py:123](app/main.py:123), which is the convention every other router in the repo follows.
+2. **Smoke tests** — added [tests/test_routing_smoke.py](tests/test_routing_smoke.py) with 6 tests:
+   - `test_negotiation_routes_have_canonical_prefix` — asserts all 11 Feature 6 paths exist at `/v1/negotiation/*`.
+   - `test_no_duplicated_negotiation_prefix` — fails if any path under `/v1/negotiation/v1/negotiation/*` is registered.
+   - `test_negotiation_start_requires_auth` — POST `/v1/negotiation/start` without a token returns 401 (proves the route exists at the canonical path *and* the middleware fires).
+   - `test_workbench_commodities_is_public`, `test_workbench_jurisdictions_is_public` — GET returns 200 without a Bearer token.
+   - `test_workbench_session_requires_auth` — POST returns 401 without a Bearer token.
+
+### Test-suite delta
+
+| | Before | After |
+|---|---|---|
+| Passed | 244 | **250** (+6 smoke tests) |
+| Skipped | 2 | 2 |
+| Failed | 0 | 0 |
+| Wall time | 11.24s | 12.24s |
+
+### Live route table after fix (Feature 6)
+
+```
+POST  /v1/negotiation/start
+GET   /v1/negotiation/{session_id}
+POST  /v1/negotiation/{session_id}/propose
+POST  /v1/negotiation/{session_id}/respond
+POST  /v1/negotiation/{session_id}/trade
+GET   /v1/negotiation/{session_id}/batna
+POST  /v1/negotiation/{session_id}/scenario
+GET   /v1/negotiation/{session_id}/ledger
+POST  /v1/negotiation/{session_id}/invite
+POST  /v1/negotiation/join/{token}
+POST  /v1/negotiation/{session_id}/export
+```
+
+Frontend [website/negotiation-arena.html](website/negotiation-arena.html) URLs (`API_BASE = "http://localhost:8000/v1"` + `/negotiation/...`) now resolve correctly.
+
+### New finding uncovered while validating the fix — promoted out of P0-2
+
+**P1-3 — `/v1/negotiation/join/{token}` design contradiction**
+
+The auth middleware exempts `/v1/negotiation/join/` ([app/middleware/auth.py:31](app/middleware/auth.py:31), commented "token-based join link carries auth in the token"), but the route handler at [app/routers/negotiation_routes.py:1382](app/routers/negotiation_routes.py:1382) still has `current_user=Depends(get_current_user)` and writes `session.multi_party_opponent_user_id = str(current_user.id)`. So:
+
+- Without a Bearer token: middleware passes through → dependency rejects with 401.
+- With a Bearer token: middleware passes through → dependency resolves to a real user → join succeeds.
+
+The middleware exemption is a no-op given the current implementation. Either:
+- **(a)** Remove `Depends(get_current_user)` and resolve identity from the token payload itself (true token-only auth) — non-trivial because the join token does not currently encode an identity.
+- **(b)** Drop the `UNPROTECTED_PREFIXES` exemption and update the middleware comment — the join flow becomes "opposing counsel must have a Lexara account, then click the invite link," which matches what the code actually does.
+
+Recommend option (b) for the merge — small middleware diff, matches live behaviour. Option (a) is a feature, not a bug fix.
+
+**This was originally classified P0-2** (auth middleware path mismatch). The path-mismatch component is fixed by P0-1. What remains is a design clarification, not a runtime blocker, so it drops to P1.
+
+### Updated merge recommendation
+
+| Gate | Status |
+|---|---|
+| Fix P0-1 (prefix duplication) | ✅ **DONE** (this branch) |
+| Verify routes resolve at canonical path | ✅ Verified via route table + 3 smoke tests |
+| Add smoke test guarding the routing | ✅ 6 tests added, all passing |
+| Frontend [negotiation-arena.html](website/negotiation-arena.html) reachability | ✅ Paths now match |
+| P1-2 ship `knowledge_seed.py` | 🟡 Outstanding — recommend before merge |
+| P1-3 reconcile join-route auth | 🟡 Outstanding — 3-line middleware fix recommended |
+| P1-1 functional E2E for new features | 🟡 Outstanding — track post-merge |
+
+**Final recommendation: 🟡 APPROVE WITH CONDITIONS** — merge is safe with the P0-1 fix in place. P1-2 and P1-3 are small, contained follow-ups; either land them in the same PR (recommended) or open a follow-up PR before promoting to production.
