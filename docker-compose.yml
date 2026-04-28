@@ -18,6 +18,11 @@ services:
     build: .
     restart: always
     env_file: .env
+    environment:
+      # LLM waterfall flags — default ON so the free tiers are used when creds exist.
+      # Override in .env (USE_GROQ=false / USE_LOCAL_LLM=false) to force Claude-only.
+      USE_GROQ: ${USE_GROQ:-true}
+      USE_LOCAL_LLM: ${USE_LOCAL_LLM:-true}
     networks:
       - traefik-public
       - internal
