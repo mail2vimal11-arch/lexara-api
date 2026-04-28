@@ -15,6 +15,29 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── Negotiation Simulator on-ramp ───────────────────────── */
+    .neg-party-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: var(--space-5, 20px); }
+    .neg-party-card { padding: 14px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; text-align: center; transition: border-color .2s, background .2s; }
+    .neg-party-card:hover { border-color: var(--gold); }
+    .neg-party-card.selected { border-color: var(--gold); background: rgba(212,175,55,.12); }
+    .neg-party-card .npc-icon { font-size: 1.4rem; margin-bottom: 5px; }
+    .neg-party-card .npc-label { font-size: 0.74rem; color: var(--text-secondary); font-weight: 500; line-height: 1.3; }
+    .neg-intake-label { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: block; }
+    .neg-intake-input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem; padding: 10px 14px; outline: none; box-sizing: border-box; }
+    .neg-intake-input:focus { border-color: var(--gold); }
+    .neg-vendor-options { display: flex; gap: 8px; flex-wrap: wrap; }
+    .neg-vendor-options label { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.82rem; color: var(--text-secondary); transition: border-color .2s; }
+    .neg-vendor-options label:has(input:checked) { border-color: var(--gold); color: var(--gold); }
+    .neg-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .neg-toggle { position: relative; width: 44px; height: 24px; }
+    .neg-toggle input { opacity: 0; width: 0; height: 0; }
+    .neg-toggle-slider { position: absolute; inset: 0; background: var(--surface-3); border-radius: 12px; cursor: pointer; transition: background .2s; }
+    .neg-toggle-slider:before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s; }
+    .neg-toggle input:checked + .neg-toggle-slider { background: var(--gold); }
+    .neg-toggle input:checked + .neg-toggle-slider:before { transform: translateX(20px); }
+    .neg-section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); font-weight: 700; margin: 20px 0 10px; }
+  </style>
 </head>
 <body>
 
@@ -340,6 +363,21 @@
             </div>
           </div>
         </div>
+          <!-- ── Negotiation Simulator CTA (shown after Key Risks analysis) ── -->
+          <div id="negotiation-cta" style="display:none;margin-top:2rem;padding:1.5rem 2rem;background:linear-gradient(135deg,rgba(212,175,55,.09),rgba(212,175,55,.03));border:1px solid var(--gold);border-radius:16px;text-align:center">
+            <div style="font-size:1.6rem;margin-bottom:8px">⚖️</div>
+            <h3 style="font-family:var(--font-display);color:var(--text-primary);font-size:1.15rem;margin-bottom:6px">Ready to Negotiate?</h3>
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.2rem;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.6">
+              Your contract has <strong style="color:var(--gold)" id="neg-risk-count">0</strong> risk flags.
+              Enter the Negotiation Simulator to model how opposing counsel would respond —
+              with Canadian case law, BATNA analysis, and cross-clause trade intelligence.
+            </p>
+            <button onclick="openNegotiationIntake()"
+                    style="padding:12px 30px;background:linear-gradient(135deg,var(--gold),#B8960C);color:#000;font-weight:700;font-size:0.92rem;border:none;border-radius:10px;cursor:pointer">
+              Enter Negotiation Simulator →
+            </button>
+            <p style="color:var(--text-muted);font-size:0.73rem;margin-top:10px">Powered by SaulLM · Canadian jurisdiction rules · No contract data stored</p>
+          </div>
         </div><!-- /demo-content -->
       </div>
     </section>
@@ -508,6 +546,138 @@
       </div>
     </div>
   </footer>
+
+  <!-- ── Negotiation Intake Modal ─────────────────────────────── -->
+  <div id="negotiation-intake-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9998;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;width:100%;max-width:660px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6)">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1">
+        <div>
+          <h2 style="font-family:var(--font-display);color:var(--text-primary);font-size:1.2rem;margin:0">⚖️ Negotiation Simulator</h2>
+          <p style="color:var(--text-muted);font-size:0.8rem;margin:2px 0 0">Set your position before entering the arena</p>
+        </div>
+        <button onclick="closeNegotiationIntake()" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center">×</button>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:24px">
+
+        <!-- Step 1: Party Type -->
+        <p class="neg-section-title">Step 1 — Who are you in this contract?</p>
+        <div class="neg-party-grid">
+          <div class="neg-party-card" id="party-card-government_authority" onclick="selectPartyType('government_authority')">
+            <div class="npc-icon">🏛</div><div class="npc-label">Government Authority</div>
+          </div>
+          <div class="neg-party-card" id="party-card-federal_vendor" onclick="selectPartyType('federal_vendor')">
+            <div class="npc-icon">🏢</div><div class="npc-label">Federal / Provincial Vendor</div>
+          </div>
+          <div class="neg-party-card" id="party-card-prime_contractor" onclick="selectPartyType('prime_contractor')">
+            <div class="npc-icon">🔗</div><div class="npc-label">Prime Contractor</div>
+          </div>
+          <div class="neg-party-card" id="party-card-subcontractor" onclick="selectPartyType('subcontractor')">
+            <div class="npc-icon">📦</div><div class="npc-label">Sub-Contractor</div>
+          </div>
+          <div class="neg-party-card" id="party-card-software_licensor" onclick="selectPartyType('software_licensor')">
+            <div class="npc-icon">💻</div><div class="npc-label">Software Licensor</div>
+          </div>
+          <div class="neg-party-card" id="party-card-software_licensee" onclick="selectPartyType('software_licensee')">
+            <div class="npc-icon">🖥</div><div class="npc-label">Software Licensee</div>
+          </div>
+          <div class="neg-party-card" id="party-card-commercial_buyer" onclick="selectPartyType('commercial_buyer')">
+            <div class="npc-icon">🛒</div><div class="npc-label">Commercial Buyer</div>
+          </div>
+          <div class="neg-party-card" id="party-card-commercial_seller" onclick="selectPartyType('commercial_seller')">
+            <div class="npc-icon">📤</div><div class="npc-label">Commercial Seller</div>
+          </div>
+        </div>
+
+        <!-- Step 2: Contract Context -->
+        <p class="neg-section-title">Step 2 — Contract context</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div>
+            <label class="neg-intake-label" for="intake-jurisdiction">Jurisdiction</label>
+            <select id="intake-jurisdiction" class="neg-intake-input">
+              <option value="FED">Federal (Canada)</option>
+              <option value="ON" selected>Ontario</option>
+              <option value="BC">British Columbia</option>
+              <option value="AB">Alberta</option>
+              <option value="QC">Québec</option>
+              <option value="SK">Saskatchewan</option>
+              <option value="MB">Manitoba</option>
+              <option value="NB">New Brunswick</option>
+              <option value="NS">Nova Scotia</option>
+              <option value="PEI">Prince Edward Island</option>
+              <option value="NL">Newfoundland & Labrador</option>
+              <option value="YT">Yukon</option>
+              <option value="NWT">Northwest Territories</option>
+              <option value="NU">Nunavut</option>
+            </select>
+          </div>
+          <div>
+            <label class="neg-intake-label" for="intake-contract-value">Estimated Contract Value (CAD)</label>
+            <input type="number" id="intake-contract-value" class="neg-intake-input" placeholder="e.g. 2500000" min="0" oninput="populateIntakeClauses()">
+          </div>
+        </div>
+
+        <!-- Vendor count -->
+        <label class="neg-intake-label">Qualified vendors available for this requirement?</label>
+        <div class="neg-vendor-options" style="margin-bottom:16px">
+          <label><input type="radio" name="vendor-count" value="1"> Only 1 (sole source)</label>
+          <label><input type="radio" name="vendor-count" value="2"> 2–3</label>
+          <label><input type="radio" name="vendor-count" value="5"> 4–10</label>
+          <label><input type="radio" name="vendor-count" value="11"> 10+</label>
+          <label><input type="radio" name="vendor-count" value="5" checked> Unknown</label>
+        </div>
+
+        <!-- FQE toggle -->
+        <div class="neg-toggle-row">
+          <div>
+            <span style="color:var(--text-primary);font-size:0.88rem;font-weight:500">Fiscal quarter / year-end pressure to close?</span>
+            <p style="color:var(--text-muted);font-size:0.78rem;margin:2px 0 0">Affects BATNA calculations — both parties feel this</p>
+          </div>
+          <label class="neg-toggle"><input type="checkbox" id="intake-fqe-toggle"><span class="neg-toggle-slider"></span></label>
+        </div>
+
+        <!-- Step 3: Non-negotiables -->
+        <p class="neg-section-title">Step 3 — Your non-negotiables</p>
+        <p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:12px">Check the risk flags you <strong>cannot sign without fixing</strong>. The simulator will fight hardest for these.</p>
+        <div id="intake-nn-checklist" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:0 12px"></div>
+
+        <!-- Step 4: Tradeables -->
+        <p class="neg-section-title">Step 4 — What you're willing to trade</p>
+        <p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:12px">Check items you'd accept as-is in exchange for winning your non-negotiables.</p>
+        <div id="intake-tr-checklist" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:0 12px"></div>
+
+      </div><!-- /body -->
+
+      <!-- Footer -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-top:1px solid var(--border);background:var(--surface);border-radius:0 0 18px 18px;position:sticky;bottom:0">
+        <p style="color:var(--text-muted);font-size:0.75rem;margin:0">All analysis is for informational purposes only — not legal advice</p>
+        <div style="display:flex;gap:10px">
+          <button onclick="closeNegotiationIntake()" style="padding:10px 20px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);border-radius:8px;cursor:pointer;font-size:0.85rem">Cancel</button>
+          <button id="intake-submit-btn" onclick="startNegotiationSession()" disabled
+                  style="padding:10px 24px;background:linear-gradient(135deg,var(--gold),#B8960C);color:#000;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:0.88rem;opacity:0.5;transition:opacity .2s"
+                  onmouseenter="if(!this.disabled)this.style.opacity='.85'" onmouseleave="if(!this.disabled)this.style.opacity='1'">
+            Start Simulation →
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Enable submit button styling when enabled
+    const _intakeSubmit = document.getElementById('intake-submit-btn');
+    if (_intakeSubmit) {
+      const _obs = new MutationObserver(() => {
+        _intakeSubmit.style.opacity = _intakeSubmit.disabled ? '0.5' : '1';
+        _intakeSubmit.style.cursor  = _intakeSubmit.disabled ? 'not-allowed' : 'pointer';
+      });
+      _obs.observe(_intakeSubmit, { attributes: true, attributeFilter: ['disabled'] });
+    }
+  </script>
 
   <script src="script.js"></script>
 </body>

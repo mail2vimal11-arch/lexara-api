@@ -21,6 +21,25 @@ from app.models.knowledge import (
     WorkbenchSession,
 )
 
+# Feature 6: Negotiation Simulator models (guarded — module may not exist yet)
+try:
+    from app.models.negotiation import (
+        NegotiationSession,
+        NegotiationClause,
+        NegotiationRound,
+        NegotiationConcession,
+        JurisprudenceArticle,
+    )
+    _negotiation_exports = [
+        "NegotiationSession",
+        "NegotiationClause",
+        "NegotiationRound",
+        "NegotiationConcession",
+        "JurisprudenceArticle",
+    ]
+except ImportError:
+    _negotiation_exports = []
+
 __all__ = [
     "User",
     "SOWClause",
@@ -35,4 +54,5 @@ __all__ = [
     "EvaluationTemplate",
     "SLATemplate",
     "WorkbenchSession",
+    *_negotiation_exports,
 ]

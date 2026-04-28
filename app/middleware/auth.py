@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class APIKeyMiddleware(BaseHTTPMiddleware):
     """Validate API keys for protected routes."""
     
-    # Routes that don't require authentication
+    # Routes that don't require authentication (exact match)
     UNPROTECTED_ROUTES = {
         "/health",
         "/docs",
@@ -20,10 +20,17 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         "/",
         "/v1/auth/register",
         "/v1/auth/login",
-        "/v1/plans",     # public — visitors must see plans before signing up
-        "/v1/checkout",  # public — Stripe checkout doesn't require a Lexara account
+        "/v1/plans",                        # public — visitors must see plans before signing up
+        "/v1/checkout",                     # public — Stripe checkout doesn't require a Lexara account
+        "/v1/workbench/commodities",        # Feature 2 — public catalogue for SOW Workbench
+        "/v1/workbench/jurisdictions",      # Feature 2 — public catalogue for SOW Workbench
     }
-    
+
+    # Route prefixes that don't require authentication (startswith match)
+    UNPROTECTED_PREFIXES = (
+        "/v1/negotiation/join/",            # Feature 6 — token-based join link carries auth in the token
+    )
+
     async def dispatch(self, request: Request, call_next):
         """Process request."""
 
@@ -33,8 +40,10 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         if request.url.path in ("/v1/webhook", "/v1/webhooks/stripe"):
             return await call_next(request)
 
-        # Skip auth for public routes
+        # Skip auth for public routes (exact and prefix matches)
         if request.url.path in self.UNPROTECTED_ROUTES:
+            return await call_next(request)
+        if any(request.url.path.startswith(p) for p in self.UNPROTECTED_PREFIXES):
             return await call_next(request)
         
         # Require auth for API routes — actual JWT validation is handled
