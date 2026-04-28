@@ -14,6 +14,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     # Routes that don't require authentication (exact match)
     UNPROTECTED_ROUTES = {
         "/health",
+        "/status",
         "/docs",
         "/redoc",
         "/openapi.json",
