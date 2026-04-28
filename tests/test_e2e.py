@@ -101,7 +101,7 @@ class TestAuthFlow:
 class TestAuthEnforcement:
 
     @pytest.mark.parametrize("method,path", [
-        ("GET", "/v1/plans"),
+        # /v1/plans is intentionally public — visitors need to see pricing before signup
         ("GET", "/v1/usage"),
         ("POST", "/v1/summary"),
         ("POST", "/v1/risk-score"),

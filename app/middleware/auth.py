@@ -20,6 +20,8 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         "/",
         "/v1/auth/register",
         "/v1/auth/login",
+        "/v1/plans",     # public — visitors must see plans before signing up
+        "/v1/checkout",  # public — Stripe checkout doesn't require a Lexara account
     }
     
     async def dispatch(self, request: Request, call_next):
@@ -44,7 +46,8 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
             if not auth_header or not auth_header.startswith("Bearer "):
                 return JSONResponse(
                     status_code=401,
-                    content={"error": "unauthorized", "message": "Invalid or missing Authorization header"}
+                    content={"detail": "Authorization header missing or malformed"},
+                    headers={"WWW-Authenticate": "Bearer"},  # RFC 6750 §3.1
                 )
         
         response = await call_next(request)
