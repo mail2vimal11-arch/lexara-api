@@ -1,7 +1,10 @@
 """Application configuration and settings."""
 
+import logging
 from pydantic_settings import BaseSettings
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -72,3 +75,33 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def _warn_on_misconfigured_llm_flags() -> None:
+    """Surface waterfall flags that are silently disabled despite credentials being present.
+
+    The 3-tier waterfall (Groq → HuggingFace → Claude) only routes to a free tier
+    when BOTH the feature flag AND the credentials are set. A missing flag is the
+    most common deployment mistake — operators set the API key in .env and assume
+    it's wired up, but every request silently falls through to paid Claude.
+    """
+    if settings.groq_api_key and not settings.use_groq:
+        logger.warning(
+            "GROQ_API_KEY is set but USE_GROQ=false — Groq tier will be skipped "
+            "and requests will fall through to Claude (paid). "
+            "Set USE_GROQ=true to enable the free tier."
+        )
+    if settings.hf_api_token and not settings.use_local_llm:
+        logger.warning(
+            "HF_API_TOKEN is set but USE_LOCAL_LLM=false — HuggingFace tier will "
+            "be skipped and requests will fall through to Claude (paid). "
+            "Set USE_LOCAL_LLM=true to enable the SaulLM tier."
+        )
+    if settings.use_local_llm and settings.hf_api_token and not settings.hf_model_id:
+        logger.warning(
+            "USE_LOCAL_LLM=true and HF_API_TOKEN is set but HF_MODEL_ID is empty — "
+            "HuggingFace tier will be skipped. Set HF_MODEL_ID to the deployed model."
+        )
+
+
+_warn_on_misconfigured_llm_flags()
