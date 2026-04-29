@@ -40,6 +40,10 @@ try:
 except ImportError:
     _negotiation_exports = []
 
+# Blast Radius engine — Portfolio Obligation Index (Step 1)
+from app.models.portfolio_contract import PortfolioContract
+from app.models.obligation import Obligation
+
 __all__ = [
     "User",
     "SOWClause",
@@ -54,5 +58,7 @@ __all__ = [
     "EvaluationTemplate",
     "SLATemplate",
     "WorkbenchSession",
+    "PortfolioContract",
+    "Obligation",
     *_negotiation_exports,
 ]

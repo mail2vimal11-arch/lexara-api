@@ -8,6 +8,7 @@ LLM generates a plain-English prevention summary that ties the jurisprudence
 and the scenario together for the user.
 """
 
+import asyncio
 import httpx
 import json
 import logging
@@ -795,4 +796,344 @@ async def simulate_scenario(
         "jurisprudence_references": jurisprudence,
         "prevention_summary": prevention_summary,
         "probability_of_scenario": probability,
+    }
+
+
+# ---------------------------------------------------------------------------
+# N-bid competitive stress-testing
+# ---------------------------------------------------------------------------
+
+KNOWN_SCENARIO_TYPES = ("breach", "enforcement", "worst_case")
+
+
+def _scenarios_for_clause_type(clause_type: str, requested: list[str]) -> list[str]:
+    """Return the subset of `requested` scenarios that have a template for `clause_type`."""
+    available = SCENARIO_TEMPLATES.get(clause_type, {})
+    if not available:
+        # simulate_scenario falls back to "liability" for unknown clause types,
+        # so all requested scenarios will run under that fallback.
+        available = SCENARIO_TEMPLATES["liability"]
+    return [s for s in requested if s in available]
+
+
+def _format_cad(amount: float) -> str:
+    return f"${amount:,.0f} CAD"
+
+
+async def simulate_bid_comparison(
+    bids: list[dict],
+    session_data: dict,
+    scenarios: Optional[list[str]] = None,
+) -> dict:
+    """
+    Run scenario stress-tests across N competing vendor bids and produce a
+    comparison matrix exposing hidden financial exposure.
+
+    Parameters
+    ----------
+    bids : list[dict]
+        Each bid: {bid_id, vendor_name, clauses: list[clause_data],
+                   contract_value_cad?, headline_price_cad?, vendor_metadata?}
+    session_data : dict
+        Default {contract_value_cad, jurisdiction_code} applied per-bid when a
+        bid does not override.
+    scenarios : list[str] | None
+        Subset of {"breach", "enforcement", "worst_case"}. Defaults to all.
+
+    Returns
+    -------
+    dict
+        See module docstring / project spec for full shape.
+    """
+    if scenarios is None:
+        scenarios = list(KNOWN_SCENARIO_TYPES)
+
+    # ── Build the flat list of (bid_idx, clause, scenario_type, per_bid_session) calls ──
+    call_specs: list[tuple[int, dict, str, dict]] = []
+    for bid_idx, bid in enumerate(bids):
+        per_bid_session = {
+            "contract_value_cad": float(
+                bid.get("contract_value_cad")
+                or session_data.get("contract_value_cad")
+                or 1_000_000
+            ),
+            "jurisdiction_code": bid.get("jurisdiction_code")
+            or session_data.get("jurisdiction_code")
+            or "ON",
+        }
+        for clause in bid.get("clauses", []):
+            clause_type = clause.get("clause_type", "")
+            applicable = _scenarios_for_clause_type(clause_type, scenarios)
+            for scenario_type in applicable:
+                call_specs.append((bid_idx, clause, scenario_type, per_bid_session))
+
+    # ── Run all simulations concurrently ──────────────────────────────────────
+    coros = [
+        simulate_scenario(clause, scenario_type, per_bid_session)
+        for (_idx, clause, scenario_type, per_bid_session) in call_specs
+    ]
+    raw_results = await asyncio.gather(*coros) if coros else []
+
+    # ── Aggregate per bid ─────────────────────────────────────────────────────
+    per_bid_buckets: list[dict] = []
+    for bid in bids:
+        per_bid_buckets.append(
+            {
+                "exposure_min_cad": 0.0,
+                "exposure_max_cad": 0.0,
+                "weighted_exposure_cad": 0.0,
+                "results": [],  # list of (clause, scenario_type, sim_result)
+            }
+        )
+
+    for (bid_idx, clause, scenario_type, _sess), sim in zip(call_specs, raw_results):
+        bucket = per_bid_buckets[bid_idx]
+        e_min = float(sim.get("total_exposure_min_cad") or 0.0)
+        e_max = float(sim.get("total_exposure_max_cad") or 0.0)
+        prob = float(sim.get("probability_of_scenario") or 0.0)
+        mean_exposure = (e_min + e_max) / 2.0
+        bucket["exposure_min_cad"] += e_min
+        bucket["exposure_max_cad"] += e_max
+        bucket["weighted_exposure_cad"] += prob * mean_exposure
+        bucket["results"].append((clause, scenario_type, sim))
+
+    # ── Build per-bid output records ──────────────────────────────────────────
+    out_bids: list[dict] = []
+    for bid, bucket in zip(bids, per_bid_buckets):
+        # Group results per clause for drill-down
+        by_clause_map: dict[str, dict] = {}
+        for clause, scenario_type, sim in bucket["results"]:
+            ck = clause.get("clause_key", "unknown")
+            if ck not in by_clause_map:
+                by_clause_map[ck] = {
+                    "clause_key": ck,
+                    "clause_type": clause.get("clause_type", ""),
+                    "scenarios": {},
+                }
+            by_clause_map[ck]["scenarios"][scenario_type] = sim
+
+        # Dominant risks: top 3 by max exposure
+        risks_sorted = sorted(
+            bucket["results"],
+            key=lambda r: float(r[2].get("total_exposure_max_cad") or 0.0),
+            reverse=True,
+        )
+        dominant_risks = []
+        for clause, scenario_type, sim in risks_sorted[:3]:
+            dominant_risks.append(
+                {
+                    "clause_key": clause.get("clause_key", "unknown"),
+                    "scenario": scenario_type,
+                    "exposure_max_cad": round(
+                        float(sim.get("total_exposure_max_cad") or 0.0), 2
+                    ),
+                    "summary": (
+                        f"{scenario_type} on '{clause.get('clause_key', 'clause')}' "
+                        f"(probability {float(sim.get('probability_of_scenario') or 0.0):.0%}) "
+                        f"could expose up to "
+                        f"{_format_cad(float(sim.get('total_exposure_max_cad') or 0.0))}."
+                    ),
+                }
+            )
+
+        headline = bid.get("headline_price_cad")
+        headline_price_cad = float(headline) if headline is not None else None
+        weighted_max = round(bucket["weighted_exposure_cad"], 2)
+        risk_adjusted = (
+            round(headline_price_cad + weighted_max, 2)
+            if headline_price_cad is not None
+            else None
+        )
+
+        out_bids.append(
+            {
+                "bid_id": bid.get("bid_id"),
+                "vendor_name": bid.get("vendor_name"),
+                "headline_price_cad": headline_price_cad,
+                "totals": {
+                    "exposure_min_cad": round(bucket["exposure_min_cad"], 2),
+                    "exposure_max_cad": round(bucket["exposure_max_cad"], 2),
+                    "weighted_exposure_cad": weighted_max,
+                    "risk_adjusted_total_cost_cad": risk_adjusted,
+                },
+                "dominant_risks": dominant_risks,
+                "by_clause": list(by_clause_map.values()),
+            }
+        )
+
+    # ── Cheapest-headline delta (for templated rationale text) ────────────────
+    bids_with_price = [b for b in out_bids if b["headline_price_cad"] is not None]
+    cheapest_bid = (
+        min(bids_with_price, key=lambda b: b["headline_price_cad"])
+        if bids_with_price
+        else None
+    )
+    if cheapest_bid is not None:
+        for b in out_bids:
+            if b["headline_price_cad"] is None:
+                b["delta_vs_cheapest"] = None
+                continue
+            price_delta = b["headline_price_cad"] - cheapest_bid["headline_price_cad"]
+            exposure_delta = (
+                b["totals"]["weighted_exposure_cad"]
+                - cheapest_bid["totals"]["weighted_exposure_cad"]
+            )
+            if b["bid_id"] == cheapest_bid["bid_id"]:
+                narrative = (
+                    f"{b['vendor_name']} is the cheapest on paper at "
+                    f"{_format_cad(b['headline_price_cad'])}; "
+                    f"weighted risk exposure is "
+                    f"{_format_cad(b['totals']['weighted_exposure_cad'])}."
+                )
+            else:
+                cheaper_or_more = "more expensive" if price_delta > 0 else "cheaper"
+                narrative = (
+                    f"{b['vendor_name']} is {_format_cad(abs(price_delta))} "
+                    f"{cheaper_or_more} than {cheapest_bid['vendor_name']} on paper, "
+                    f"but real exposure is "
+                    f"{_format_cad(abs(exposure_delta))} "
+                    f"{'higher' if exposure_delta > 0 else 'lower'}."
+                )
+            b["delta_vs_cheapest"] = {
+                "cheapest_bid_id": cheapest_bid["bid_id"],
+                "price_delta_cad": round(price_delta, 2),
+                "weighted_exposure_delta_cad": round(exposure_delta, 2),
+                "narrative": narrative,
+            }
+    else:
+        for b in out_bids:
+            b["delta_vs_cheapest"] = None
+
+    # ── Ranking ───────────────────────────────────────────────────────────────
+    has_pricing = all(b["headline_price_cad"] is not None for b in out_bids)
+    if has_pricing and out_bids:
+        ranked = sorted(
+            out_bids,
+            key=lambda b: b["totals"]["risk_adjusted_total_cost_cad"],
+        )
+        rank_basis = "risk_adjusted_total_cost_cad"
+    else:
+        ranked = sorted(out_bids, key=lambda b: b["totals"]["weighted_exposure_cad"])
+        rank_basis = "weighted_exposure_cad"
+
+    ranking_out: list[dict] = []
+    for i, b in enumerate(ranked):
+        rank = i + 1
+        if rank == 1:
+            if rank_basis == "risk_adjusted_total_cost_cad":
+                rationale = (
+                    f"Lowest risk-adjusted total cost "
+                    f"({_format_cad(b['totals']['risk_adjusted_total_cost_cad'])}) — "
+                    f"headline price {_format_cad(b['headline_price_cad'])} plus "
+                    f"weighted exposure {_format_cad(b['totals']['weighted_exposure_cad'])}."
+                )
+            else:
+                rationale = (
+                    f"Lowest weighted risk exposure "
+                    f"({_format_cad(b['totals']['weighted_exposure_cad'])})."
+                )
+        else:
+            top = ranked[0]
+            if rank_basis == "risk_adjusted_total_cost_cad":
+                gap = (
+                    b["totals"]["risk_adjusted_total_cost_cad"]
+                    - top["totals"]["risk_adjusted_total_cost_cad"]
+                )
+                rationale = (
+                    f"{_format_cad(gap)} more expensive on a risk-adjusted basis "
+                    f"than {top['vendor_name']}. Dominant risk: "
+                    f"{b['dominant_risks'][0]['summary'] if b['dominant_risks'] else 'n/a'}"
+                )
+            else:
+                gap = (
+                    b["totals"]["weighted_exposure_cad"]
+                    - top["totals"]["weighted_exposure_cad"]
+                )
+                rationale = (
+                    f"Carries {_format_cad(gap)} more weighted risk exposure than "
+                    f"{top['vendor_name']}. Dominant risk: "
+                    f"{b['dominant_risks'][0]['summary'] if b['dominant_risks'] else 'n/a'}"
+                )
+        ranking_out.append(
+            {
+                "rank": rank,
+                "bid_id": b["bid_id"],
+                "vendor_name": b["vendor_name"],
+                "rationale": rationale,
+            }
+        )
+
+    # ── Head-to-head pairwise insights ────────────────────────────────────────
+    head_to_head: list[dict] = []
+    for i in range(len(out_bids)):
+        for j in range(i + 1, len(out_bids)):
+            a = out_bids[i]
+            b = out_bids[j]
+            a_max = a["totals"]["exposure_max_cad"]
+            b_max = b["totals"]["exposure_max_cad"]
+            a_w = a["totals"]["weighted_exposure_cad"]
+            b_w = b["totals"]["weighted_exposure_cad"]
+            a_price = a["headline_price_cad"]
+            b_price = b["headline_price_cad"]
+
+            if a_price is not None and b_price is not None:
+                price_diff = b_price - a_price
+                if price_diff > 0:
+                    cheaper, costlier = a, b
+                    cheaper_w = a_w
+                    costlier_w = b_w
+                else:
+                    cheaper, costlier = b, a
+                    cheaper_w = b_w
+                    costlier_w = a_w
+                exposure_diff = cheaper_w - costlier_w
+                if exposure_diff > 0:
+                    summary = (
+                        f"{cheaper['vendor_name']} is "
+                        f"{_format_cad(abs(price_diff))} cheaper on paper, but its "
+                        f"weighted scenario exposure is "
+                        f"{_format_cad(abs(exposure_diff))} higher than "
+                        f"{costlier['vendor_name']} — likely due to: "
+                        f"{cheaper['dominant_risks'][0]['summary'] if cheaper['dominant_risks'] else 'thinner clause coverage'}."
+                    )
+                else:
+                    summary = (
+                        f"{cheaper['vendor_name']} is "
+                        f"{_format_cad(abs(price_diff))} cheaper on paper AND carries "
+                        f"{_format_cad(abs(exposure_diff))} less weighted exposure than "
+                        f"{costlier['vendor_name']}."
+                    )
+            else:
+                if a_w <= b_w:
+                    lower, higher = a, b
+                    diff = b_w - a_w
+                else:
+                    lower, higher = b, a
+                    diff = a_w - b_w
+                summary = (
+                    f"{lower['vendor_name']} carries {_format_cad(diff)} less "
+                    f"weighted scenario exposure than {higher['vendor_name']}. "
+                    f"{higher['vendor_name']}'s dominant risk: "
+                    f"{higher['dominant_risks'][0]['summary'] if higher['dominant_risks'] else 'n/a'}"
+                )
+
+            head_to_head.append(
+                {
+                    "a": a["vendor_name"],
+                    "a_bid_id": a["bid_id"],
+                    "b": b["vendor_name"],
+                    "b_bid_id": b["bid_id"],
+                    "summary": summary,
+                }
+            )
+
+    return {
+        "session": {
+            "contract_value_cad": float(session_data.get("contract_value_cad") or 0.0),
+            "jurisdiction_code": session_data.get("jurisdiction_code", "ON"),
+            "scenarios_run": list(scenarios),
+        },
+        "bids": out_bids,
+        "ranking": ranking_out,
+        "head_to_head": head_to_head,
     }

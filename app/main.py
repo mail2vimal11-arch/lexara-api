@@ -11,6 +11,8 @@ from app.database.session import init_db, SessionLocal
 from app.routers import contracts, usage, health, upload, billing, procurement
 from app.routers import auth_routes, procurement_clause_routes, ingestion_routes, compare_routes
 from app.routers import workbench_routes
+from app.routers import portfolio_routes, bid_comparison_routes, dark_obligation_routes
+from app.routers import obligation_temporal_routes  # Feature 3: Obligation Matrix
 try:
     from app.routers import negotiation_routes  # Feature 6
 except ImportError:
@@ -29,6 +31,7 @@ async def lifespan(app: FastAPI):
         # Create procurement AI tables
         from app.database.session import Base, engine
         from app.models import user, tender, clause, audit, jurisdiction, commodity, knowledge  # noqa: F401
+        from app.models import obligation_temporal  # noqa: F401  # Feature 3
         # Feature 6 models (import after creation):
         try:
             from app.models import negotiation  # noqa: F401
@@ -121,6 +124,12 @@ app.include_router(workbench_routes.router, prefix="/v1/workbench", tags=["SOW W
 # Feature 6: Negotiation Simulator (router registered when module is available)
 if negotiation_routes is not None:
     app.include_router(negotiation_routes.router, prefix="/v1/negotiation", tags=["Negotiation Simulator"])
+# Blast Radius engine: portfolio obligation index, N-bid stress matrix, dark-obligation detector
+app.include_router(portfolio_routes.router)
+app.include_router(bid_comparison_routes.router)
+app.include_router(dark_obligation_routes.router)
+# Feature 3: Obligation Matrix — temporal dependency graph
+app.include_router(obligation_temporal_routes.router, prefix="/v1/procurement", tags=["Obligation Matrix"])
 
 # Global Exception Handler
 @app.exception_handler(Exception)
