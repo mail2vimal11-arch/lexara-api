@@ -20,7 +20,9 @@ contracts to compute them empirically.
 
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 from typing import Optional
 
 from app.nlp.embeddings import cosine_similarity, embed_text
@@ -565,6 +567,252 @@ def detect_dark_obligations(
 
     return {
         "contract_type": contract_type,
+        "checked": len(catalog),
+        "missing": missing,
+        "present": present,
+        "summary": summary,
+    }
+
+
+# ── CUAD-derived general-legal catalog ───────────────────────────────────────
+#
+# The IT/goods/construction/consulting catalog above is hand-curated and
+# domain-specific. The CUAD catalog below is *measured* — peer frequencies are
+# computed once by `scripts/ingest_cuad.py` from the public CUAD corpus
+# (510 commercial contracts, 41 clause categories) and persisted to
+# `cuad_frequencies.json`. The two coexist: an IT SOW gets checked against
+# both the IT catalog (specific) and the CUAD catalog (general).
+#
+# If `cuad_frequencies.json` is absent (e.g. the ingest script has not been
+# run yet, or it failed because of network) the CUAD layer degrades silently
+# — `detect_dark_obligations_general` returns an explicit `not_available`
+# result and the existing `detect_dark_obligations` is unaffected.
+
+
+_CUAD_FREQ_PATH = Path(__file__).resolve().parent / "cuad_frequencies.json"
+
+# Cached at first read.
+_CUAD_RAW: Optional[dict] = None
+_CUAD_GENERAL_CATALOG_CACHE: Optional[list[dict]] = None
+
+
+# Generic 1-sentence templates used as similarity probes for each CUAD
+# category. Kept short and vocabulary-overlap-friendly so cosine similarity
+# against a contract paragraph yields a useful signal without an LLM.
+_CUAD_TEMPLATES: dict[str, str] = {
+    "Document Name": "This agreement is titled and identified at the top of the document.",
+    "Parties": "The parties to this agreement are identified by legal name and capacity.",
+    "Agreement Date": "This agreement is dated as of the date first written above.",
+    "Effective Date": "This agreement shall be effective as of the effective date set forth herein.",
+    "Expiration Date": "This agreement shall expire on the expiration date set forth herein.",
+    "Renewal Term": "This agreement shall automatically renew for additional renewal terms unless terminated.",
+    "Notice Period To Terminate Renewal": "Either party may terminate the renewal by providing written notice within the notice period before the renewal date.",
+    "Governing Law": "This agreement shall be governed by and construed in accordance with the laws of the specified jurisdiction.",
+    "Most Favored Nation": "Vendor warrants that the prices charged are no higher than those charged to any other customer under most favored nation terms.",
+    "Competitive Restriction Exception": "Notwithstanding the foregoing competitive restrictions, the following exceptions shall apply.",
+    "Non-Compete": "Neither party shall engage in any competing business or activity during the term and for a period thereafter.",
+    "Exclusivity": "Vendor shall provide the services exclusively to the buyer and shall not provide similar services to competitors.",
+    "No-Solicit Of Customers": "Neither party shall solicit the customers of the other party during the term and for a period thereafter.",
+    "No-Solicit Of Employees": "Neither party shall solicit or hire the employees of the other party during the term and for a period thereafter.",
+    "Non-Disparagement": "Neither party shall make any disparaging statements about the other party or its business.",
+    "Termination For Convenience": "Either party may terminate this agreement for convenience upon written notice without cause.",
+    "Rofr/Rofo/Rofn": "The party shall have a right of first refusal, right of first offer, or right of first negotiation as described herein.",
+    "Change Of Control": "In the event of a change of control of either party, the other party shall have the right to terminate this agreement.",
+    "Anti-Assignment": "Neither party may assign this agreement without the prior written consent of the other party.",
+    "Revenue/Profit Sharing": "The parties shall share revenue or profits arising from this agreement in accordance with the terms set forth herein.",
+    "Price Restrictions": "Vendor shall not increase prices charged under this agreement except in accordance with the price restriction provisions.",
+    "Minimum Commitment": "The buyer commits to a minimum purchase or volume commitment as set forth herein.",
+    "Volume Restriction": "Volume restrictions and quantity limitations shall apply as described in this agreement.",
+    "Ip Ownership Assignment": "All intellectual property created under this agreement shall be assigned to and owned exclusively by the buyer.",
+    "Joint Ip Ownership": "Intellectual property jointly developed by the parties shall be owned jointly as set forth herein.",
+    "License Grant": "Licensor hereby grants to licensee a license to use the licensed materials subject to the terms of this agreement.",
+    "Non-Transferable License": "The license granted hereunder is non-transferable and may not be assigned without consent.",
+    "Affiliate License-Licensor": "The license shall extend to and may be exercised by affiliates of the licensor.",
+    "Affiliate License-Licensee": "The license shall extend to and may be exercised by affiliates of the licensee.",
+    "Unlimited/All-You-Can-Eat-License": "Licensee shall have an unlimited or all-you-can-eat license to use the licensed materials without restriction on volume.",
+    "Irrevocable Or Perpetual License": "The license granted hereunder shall be irrevocable and perpetual.",
+    "Source Code Escrow": "Vendor shall deposit the source code of the software with a third-party escrow agent for release upon defined trigger events.",
+    "Post-Termination Services": "Following termination, vendor shall continue to provide transition services for a defined wind-down period.",
+    "Audit Rights": "Buyer shall have the right to audit vendor's books, records, and security posture relating to this agreement.",
+    "Uncapped Liability": "Notwithstanding any cap on liability, certain categories of damages shall not be subject to any limitation of liability.",
+    "Cap On Liability": "The total aggregate liability of either party arising under this agreement shall not exceed the cap set forth herein.",
+    "Liquidated Damages": "In the event of breach, the breaching party shall pay liquidated damages in the amount specified herein.",
+    "Warranty Duration": "Vendor warrants the deliverables for the warranty period set forth herein.",
+    "Insurance": "Vendor shall maintain insurance coverage in the types and amounts set forth herein and shall provide certificates on request.",
+    "Covenant Not To Sue": "Each party covenants not to sue the other party with respect to the matters covered by this agreement.",
+    "Third Party Beneficiary": "This agreement shall confer rights upon the third party beneficiaries identified herein.",
+}
+
+
+def _importance_from_frequency(freq: float) -> str:
+    """Heuristic mapping from measured CUAD frequency to importance bucket."""
+    if freq >= 0.85:
+        return "critical"
+    if freq >= 0.55:
+        return "high"
+    if freq >= 0.30:
+        return "medium"
+    return "low"
+
+
+def _load_cuad_raw() -> Optional[dict]:
+    """Load `cuad_frequencies.json`. Cached. Returns None if file missing."""
+    global _CUAD_RAW
+    if _CUAD_RAW is not None:
+        return _CUAD_RAW
+    if not _CUAD_FREQ_PATH.exists():
+        return None
+    try:
+        with open(_CUAD_FREQ_PATH, encoding="utf-8") as f:
+            _CUAD_RAW = json.load(f)
+        return _CUAD_RAW
+    except (OSError, json.JSONDecodeError) as e:  # pragma: no cover — defensive
+        logger.warning(f"Failed to load CUAD frequencies: {e}")
+        return None
+
+
+def _build_cuad_catalog() -> list[dict]:
+    """Synthesize a catalog (same shape as STANDARD_CLAUSE_CATALOG entries)."""
+    global _CUAD_GENERAL_CATALOG_CACHE
+    if _CUAD_GENERAL_CATALOG_CACHE is not None:
+        return _CUAD_GENERAL_CATALOG_CACHE
+
+    raw = _load_cuad_raw()
+    if not raw:
+        _CUAD_GENERAL_CATALOG_CACHE = []
+        return _CUAD_GENERAL_CATALOG_CACHE
+
+    n_contracts = (raw.get("_meta") or {}).get("n_contracts", 0)
+    catalog: list[dict] = []
+    for label, freq in (raw.get("frequencies") or {}).items():
+        try:
+            f = float(freq)
+        except (TypeError, ValueError):
+            continue
+        key = (
+            label.lower()
+            .replace("/", "_")
+            .replace(" ", "_")
+            .replace("-", "_")
+        )
+        catalog.append(
+            {
+                "key": f"cuad_{key}",
+                "label": label,
+                "peer_frequency": round(f, 4),
+                "importance": _importance_from_frequency(f),
+                "typical_text": _CUAD_TEMPLATES.get(
+                    label,
+                    f"This agreement contains a {label} clause.",
+                ),
+                "rationale": (
+                    f"Measured peer frequency from CUAD corpus "
+                    f"(n={n_contracts} contracts)."
+                ),
+            }
+        )
+    # Sort by frequency descending so the catalog has a stable, useful order.
+    catalog.sort(key=lambda e: -e["peer_frequency"])
+    _CUAD_GENERAL_CATALOG_CACHE = catalog
+    return catalog
+
+
+# Eagerly-initialised constant for callers that prefer a module-level handle.
+# Will be an empty list if cuad_frequencies.json has not been generated.
+CUAD_GENERAL_CATALOG: list[dict] = _build_cuad_catalog()
+
+
+def cuad_frequencies_meta() -> Optional[dict]:
+    """Return the `_meta` block of cuad_frequencies.json, or None if absent."""
+    raw = _load_cuad_raw()
+    if not raw:
+        return None
+    return raw.get("_meta")
+
+
+def list_cuad_categories() -> list[dict]:
+    """Return the CUAD-derived general catalog as a list of dicts.
+
+    Each entry has the same shape as STANDARD_CLAUSE_CATALOG entries:
+    key, label, peer_frequency, importance, typical_text, rationale.
+    Returns [] if cuad_frequencies.json has not been generated.
+    """
+    return list(_build_cuad_catalog())
+
+
+def detect_dark_obligations_general(
+    sow_text: str,
+    presence_threshold: float = 0.55,
+    min_peer_frequency: float = 0.30,
+) -> dict:
+    """
+    Run dark-obligation detection against the CUAD-derived *general* catalog.
+
+    This is a cross-cutting layer that complements the contract-type-specific
+    detector — it answers "what general legal clauses are missing relative to
+    a real corpus of commercial contracts?".
+
+    Returns a dict with keys:
+        source              — "cuad"
+        n_contracts         — corpus size used to compute frequencies
+        checked, missing, present, summary
+    or {"error": "cuad_not_available", "message": ...} if the CUAD JSON has
+    not been generated yet.
+    """
+    catalog = _build_cuad_catalog()
+    if not catalog:
+        return {
+            "error": "cuad_not_available",
+            "message": (
+                "CUAD frequencies have not been ingested. "
+                "Run `python scripts/ingest_cuad.py` to generate "
+                "`app/services/cuad_frequencies.json`."
+            ),
+        }
+
+    meta = cuad_frequencies_meta() or {}
+    n_contracts = meta.get("n_contracts")
+
+    chunks = _chunk_sow(sow_text)
+    missing: list[dict] = []
+    present: list[dict] = []
+
+    for entry in catalog:
+        score = _max_similarity(entry["typical_text"], chunks)
+        is_present = score >= presence_threshold
+
+        if is_present:
+            present.append(
+                {
+                    "key": entry["key"],
+                    "label": entry["label"],
+                    "peer_frequency": entry["peer_frequency"],
+                    "best_match_score": round(score, 4),
+                }
+            )
+        else:
+            if entry["peer_frequency"] >= min_peer_frequency:
+                missing.append(
+                    {
+                        "key": entry["key"],
+                        "label": entry["label"],
+                        "peer_frequency": entry["peer_frequency"],
+                        "importance": entry["importance"],
+                        "best_match_score": round(score, 4),
+                        "rationale": entry["rationale"],
+                        "suggested_clause_text": entry["typical_text"],
+                    }
+                )
+
+    summary = (
+        f"Flagged {len(missing)} missing general-legal clause(s) out of "
+        f"{len(catalog)} CUAD categories checked "
+        f"(corpus n={n_contracts})."
+    )
+
+    return {
+        "source": "cuad",
+        "n_contracts": n_contracts,
         "checked": len(catalog),
         "missing": missing,
         "present": present,

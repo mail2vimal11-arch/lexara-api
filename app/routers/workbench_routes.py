@@ -91,6 +91,12 @@ class ExportRequest(BaseModel):
     format: str = "text"  # "text", "markdown"
 
 
+class ExtractToPortfolioRequest(BaseModel):
+    contract_name: str
+    counterparty_name: str
+    contract_type: str  # it_services | goods | construction | consulting | other
+
+
 # ---------------------------------------------------------------------------
 # Helper: resolve and authorise session
 # ---------------------------------------------------------------------------
@@ -766,3 +772,59 @@ def export_document(
         "word_count": word_count,
         "section_count": section_count,
     }
+
+
+# ---------------------------------------------------------------------------
+# POST /session/{session_id}/extract-to-portfolio  (auth required)
+# ---------------------------------------------------------------------------
+
+@router.post("/session/{session_id}/extract-to-portfolio")
+async def extract_session_to_portfolio(
+    session_id: str,
+    request: ExtractToPortfolioRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Bridge: take the session's drafted SOW text, create a draft
+    PortfolioContract and run the LLM obligation extractor over the text.
+
+    No obligations are persisted — the user reviews `proposals` and then
+    calls /v1/portfolio/contracts/{contract_id}/obligations/batch-create
+    to commit the ones they approve.
+    """
+    session = _get_session_or_404(session_id, db, current_user)
+
+    sow_text = (session.current_text or "").strip()
+    if not sow_text:
+        raise HTTPException(
+            status_code=400,
+            detail="Session has no drafted text to extract from. Save a draft first.",
+        )
+
+    # Re-use the portfolio service helper rather than HTTP-calling ourselves.
+    from app.routers.portfolio_routes import extract_and_stage_for_user
+
+    result = await extract_and_stage_for_user(
+        db=db,
+        user=current_user,
+        sow_text=sow_text,
+        contract_type=request.contract_type,
+        contract_name=request.contract_name,
+        counterparty_name=request.counterparty_name,
+        contract_value_cad=float(session.estimated_value_cad) if session.estimated_value_cad else None,
+        jurisdiction_code=session.jurisdiction_code,
+        our_role="buyer",
+    )
+
+    log_action(
+        db,
+        "WORKBENCH_EXTRACTED_TO_PORTFOLIO",
+        {
+            "session_id": session_id,
+            "contract_id": result["contract"]["id"],
+            "extracted_count": result["extracted_count"],
+        },
+        user_id=str(current_user.id),
+    )
+
+    return result

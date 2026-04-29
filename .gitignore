@@ -3,3 +3,7 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .env
+
+# CUAD raw dataset (~100MB zip + extracted CSV). The derived
+# app/services/cuad_frequencies.json IS committed; the raw corpus is not.
+data/cuad/

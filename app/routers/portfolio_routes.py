@@ -37,6 +37,7 @@ from app.models.portfolio_contract import PortfolioContract
 from app.models.user import User
 from app.security import get_current_user
 from app.services.cascade_detector import detect_cascades
+from app.services.obligation_extractor import extract_obligations_from_text
 
 router = APIRouter(prefix="/v1/portfolio", tags=["portfolio"])
 
@@ -412,6 +413,227 @@ def cascade_check_portfolio(
         user_id=str(current_user.id),
         focus_contract_id=None,
         include_draft=include_draft,
+    )
+
+
+# ---------------------------------------------------------------------------
+# LLM-driven obligation extraction — Workbench → Portfolio bridge
+# ---------------------------------------------------------------------------
+
+class ExtractObligationsRequest(BaseModel):
+    sow_text: str = Field(..., min_length=1)
+
+
+class ObligationProposal(BaseModel):
+    """Output of the extractor — shaped like ObligationCreate plus a UI hint.
+
+    Pydantic is intentionally permissive here because the extractor already
+    sanitized the upstream LLM payload. _extraction_confidence is the only
+    field beyond ObligationCreate.
+    """
+    model_config = ConfigDict(extra="allow")
+
+    obligation_type: str
+    party: str
+    description: str
+    deadline_days_from_trigger: Optional[int] = None
+    trigger_event: Optional[str] = None
+    absolute_deadline: Optional[date] = None
+    penalty_formula: Optional[str] = None
+    penalty_amount_cad: Optional[float] = None
+    liability_cap_cad: Optional[float] = None
+    source_clause_text: Optional[str] = None
+    source_clause_key: Optional[str] = None
+    metadata_json: Optional[Dict[str, Any]] = None
+
+
+class BatchCreateObligationsRequest(BaseModel):
+    obligations: List[ObligationCreate]
+
+
+class ExtractAndStageRequest(BaseModel):
+    sow_text: str = Field(..., min_length=1)
+    contract_type: str = Field(
+        ..., description="it_services | goods | construction | consulting | other"
+    )
+    contract_name: Optional[str] = None
+    counterparty_name: Optional[str] = None
+    contract_value_cad: Optional[float] = None
+    jurisdiction_code: Optional[str] = None
+    our_role: str = "buyer"
+
+
+async def extract_and_stage_for_user(
+    db: Session,
+    user: User,
+    sow_text: str,
+    contract_type: str,
+    contract_name: Optional[str] = None,
+    counterparty_name: Optional[str] = None,
+    contract_value_cad: Optional[float] = None,
+    jurisdiction_code: Optional[str] = None,
+    our_role: str = "buyer",
+) -> Dict[str, Any]:
+    """Service-level helper used by both the portfolio extract-and-stage route
+    and the workbench /extract-to-portfolio route.
+
+    Creates a draft PortfolioContract for the user and runs the LLM extractor
+    over the supplied text. Does NOT persist any obligations — those come back
+    in `proposals` so the caller can review them before calling batch-create.
+    """
+    contract = PortfolioContract(
+        user_id=str(user.id),
+        name=contract_name or "Draft SOW (pending review)",
+        counterparty_name=counterparty_name or "Pending",
+        our_role=our_role,
+        contract_type=contract_type,
+        contract_value_cad=contract_value_cad,
+        currency="CAD",
+        status="draft",
+        jurisdiction_code=jurisdiction_code,
+    )
+    db.add(contract)
+    db.commit()
+    db.refresh(contract)
+
+    proposals = await extract_obligations_from_text(
+        sow_text=sow_text,
+        contract_type=contract_type,
+        contract_value_cad=contract_value_cad,
+        jurisdiction_code=jurisdiction_code,
+    )
+
+    return {
+        "contract": PortfolioContractRead.model_validate(contract).model_dump(mode="json"),
+        "extracted_count": len(proposals),
+        "proposals": proposals,
+    }
+
+
+@router.post("/contracts/{contract_id}/extract-obligations")
+async def extract_obligations_for_contract(
+    contract_id: str,
+    payload: ExtractObligationsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Run the LLM obligation extractor against `payload.sow_text` using the
+    target contract's metadata as context. DOES NOT PERSIST anything — only
+    returns the proposals so the user can review them.
+
+    The user must follow up with `POST .../obligations/batch-create` to
+    actually persist any approved proposals.
+    """
+    contract = _get_owned_contract(contract_id, db, current_user)
+
+    proposals = await extract_obligations_from_text(
+        sow_text=payload.sow_text,
+        contract_type=contract.contract_type,
+        contract_value_cad=contract.contract_value_cad,
+        jurisdiction_code=contract.jurisdiction_code,
+    )
+
+    return {
+        "contract_id": contract.id,
+        "extracted_count": len(proposals),
+        "proposals": proposals,
+    }
+
+
+@router.post(
+    "/contracts/{contract_id}/obligations/batch-create",
+    status_code=status.HTTP_201_CREATED,
+)
+def batch_create_obligations(
+    contract_id: str,
+    payload: BatchCreateObligationsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Persist a batch of obligations atomically.
+
+    All-or-nothing: if any single obligation fails to insert, the entire
+    transaction is rolled back. This is the "approve" half of the LLM
+    extraction → review → save flow.
+    """
+    contract = _get_owned_contract(contract_id, db, current_user)
+
+    if not payload.obligations:
+        raise HTTPException(
+            status_code=400, detail="obligations list must not be empty"
+        )
+
+    created_rows: List[Obligation] = []
+    try:
+        for obl_payload in payload.obligations:
+            data = obl_payload.model_dump()
+            if data.get("metadata_json") is None:
+                data["metadata_json"] = {}
+
+            # Light validation in addition to Pydantic's — guard the enums so
+            # a bad LLM extraction can't slip past the route into the DB.
+            from app.services.obligation_extractor import (
+                ALLOWED_OBLIGATION_TYPES,
+                ALLOWED_PARTIES,
+            )
+            if data["obligation_type"] not in ALLOWED_OBLIGATION_TYPES:
+                raise ValueError(
+                    f"Invalid obligation_type: {data['obligation_type']!r}"
+                )
+            if data["party"] not in ALLOWED_PARTIES:
+                raise ValueError(f"Invalid party: {data['party']!r}")
+            if not data.get("description") or not str(data["description"]).strip():
+                raise ValueError("description is required")
+
+            obligation = Obligation(
+                contract_id=contract.id,
+                user_id=str(current_user.id),
+                **data,
+            )
+            db.add(obligation)
+            created_rows.append(obligation)
+
+        db.commit()
+        for row in created_rows:
+            db.refresh(row)
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=f"batch-create failed; no obligations persisted: {exc}",
+        )
+
+    return {
+        "contract_id": contract.id,
+        "created_count": len(created_rows),
+        "obligation_ids": [r.id for r in created_rows],
+        "obligations": [_serialize_obligation(r).model_dump(mode="json") for r in created_rows],
+    }
+
+
+@router.post("/extract-and-stage")
+async def extract_and_stage(
+    payload: ExtractAndStageRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """One-shot: create a draft PortfolioContract AND extract obligations.
+
+    Useful for users who haven't catalogued the contract yet — typically called
+    from the Workbench when a user wants to start tracking a SOW they've been
+    drafting. The contract starts as `status="draft"` and no obligations are
+    persisted; the proposals are returned for review.
+    """
+    return await extract_and_stage_for_user(
+        db=db,
+        user=current_user,
+        sow_text=payload.sow_text,
+        contract_type=payload.contract_type,
+        contract_name=payload.contract_name,
+        counterparty_name=payload.counterparty_name,
+        contract_value_cad=payload.contract_value_cad,
+        jurisdiction_code=payload.jurisdiction_code,
+        our_role=payload.our_role,
     )
 
 
