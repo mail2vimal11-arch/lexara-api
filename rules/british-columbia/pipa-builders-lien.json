@@ -1,0 +1,51 @@
+{
+  "rules": [
+    {
+      "id": "bc-pipa-19-cross-border",
+      "statute": "PIPA-British-Columbia",
+      "jurisdiction": "CA-BC",
+      "section": "Personal Information Protection Act, s.19 (sensitive personal information)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "2004-01-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/03063_01",
+      "applies_when": {
+        "buyer_types": ["provincial-bc", "private-bc"]
+      },
+      "forbid": {
+        "move_types": ["disclose_personal_info_no_consent"],
+        "text_patterns": [
+          "(?i)\\bdisclose\\s+personal information\\b[^.]{0,200}\\bwithout (consent|notification)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "BC PIPA requires consent for collection, use and disclosure of personal information by private organisations, with limited statutory exceptions. Disclosure without consent or a recognised exception is a contravention.",
+      "remediation_hint": "Specify the consent mechanism (express/implied/opt-out) and document an applicable PIPA exception if consent is not relied on."
+    },
+    {
+      "id": "bc-builders-lien-holdback",
+      "statute": "Builders-Lien-Act-BC",
+      "jurisdiction": "CA-BC",
+      "section": "Builders Lien Act, s.4 (10% statutory holdback)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1998-02-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/97045_01",
+      "applies_when": {
+        "industries": ["construction", "trades"],
+        "buyer_types": ["provincial-bc", "broader-public-sector-bc", "municipal-bc", "private-bc"]
+      },
+      "forbid": {
+        "move_types": ["waive_statutory_holdback"],
+        "text_patterns": [
+          "(?i)\\bwaive\\s+(the\\s+)?(builders'?\\s+)?lien\\s+holdback\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "BC Builders Lien Act fixes a 10% statutory holdback that may not be waived; release follows certification + lien-period rules.",
+      "remediation_hint": "Maintain a 10% holdback per the Act; release follows substantial completion and the 55-day lien period."
+    }
+  ]
+}

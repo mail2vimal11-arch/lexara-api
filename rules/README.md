@@ -55,6 +55,20 @@ rules/
 5. Counsel reviewer approves the legal substance.
 6. Merge → rules hot-load on next deploy.
 
+## Schema invariant: provincial rules must scope by `buyer_types`
+
+A provincial or territorial rule whose text patterns or move-type list
+would also match in another jurisdiction (e.g. a "waive lien holdback"
+regex appears almost identically in every provincial lien act) **must**
+include `applies_when.buyer_types` listing only that jurisdiction's
+buyer types — `provincial-<code>`, `broader-public-sector-<code>`,
+`municipal-<code>`, `private-<code>`. Otherwise the rule will fire on
+moves intended for a different province and produce false positives.
+
+Federal rules (CFTA, CETA, Competition Act, IP statutes, PIPEDA, CASL)
+typically apply Canada-wide and may omit `buyer_types`, but should
+include them when scoping to specific contracting bodies.
+
 ## Conflict handling
 
 The engine surfaces **all triggered rules**, not just the highest-priority
@@ -76,27 +90,41 @@ must update or add fixtures, otherwise the test fails loudly.
 | CA federal | CFTA — Art. 502, Art. 503 | ✓ | `federal/cfta.json` |
 | CA federal | CETA — Ch. 19 | ✓ | `federal/ceta.json` |
 | CA federal | Competition Act — s.47 (bid-rigging) | ✓ | `federal/competition-act.json` |
-| CA federal | Copyright Act — s.13(3), s.14.1(2) (moral rights) | ✓ | `federal/copyright-act.json` |
-| CA federal | Trademarks Act — s.50 (licensing/QC) | ✓ | `federal/trademarks-act.json` |
-| CA federal | Patent Act — s.49 (assignments) | ✓ | `federal/patent-act.json` |
-| CA federal | PIPEDA — Sch.1 cross-border | ✓ | `federal/pipeda.json` |
-| CA federal | CASL — s.6 (commercial electronic messages) | ✓ | `federal/casl.json` |
+| CA federal | Copyright Act — s.13(3), s.14.1(2) | ✓ | `federal/copyright-act.json` |
+| CA federal | Trademarks Act — s.50 | ✓ | `federal/trademarks-act.json` |
+| CA federal | Patent Act — s.49 | ✓ | `federal/patent-act.json` |
+| CA federal | PIPEDA — Sch. 1 cross-border | ✓ | `federal/pipeda.json` |
+| CA federal | CASL — s.6 | ✓ | `federal/casl.json` |
 | CA federal | CUSMA Ch.13, Government Contracts Regs, Defence Production Act, Investment Canada Act, Limitations Act | ✗ | TBD |
 | CA‑ON | BOBI 2022 | ✓ | `ontario/bobi-2022.json` |
 | CA‑ON | Construction Act — prompt payment, holdback | ✓ | `ontario/construction-act.json` |
 | CA‑ON | Insurance / WSIA | ✓ | `ontario/insurance-act.json` |
 | CA‑ON | Sale of Goods Act | ✓ | `ontario/sale-of-goods-act.json` |
-| CA‑ON | Broader Public Sector Accountability Act, Procurement Directive, AODA, PIPA‑equivalent, Consumer Protection Act 2002 | ✗ | TBD |
+| CA‑ON | Broader Public Sector Accountability Act, Procurement Directive, AODA, Consumer Protection Act 2002 | ✗ | TBD |
 | CA‑QC | Law 25 (Bill 64) — privacy | ✓ | `quebec/law-25.json` |
-| CA‑QC | LCOP (public-body contracting), UPAC integrity | ✗ | TBD |
-| CA‑BC | PIPA, Procurement Services Act | ✗ | TBD |
-| CA‑AB / SK / MB / atlantic / territories | various | ✗ | TBD |
+| CA‑QC | Charter of the French Language (Bill 96) | ✓ | `quebec/charter-french-language.json` |
+| CA‑QC | LCOP, UPAC integrity, Civil Code of Quebec, Building Act (RBQ) | ✗ | TBD |
+| CA‑BC | PIPA + Builders Lien Act | ✓ | `british-columbia/pipa-builders-lien.json` |
+| CA‑BC | BC Bid policies, Sale of Goods Act, WorkSafeBC | ✗ | TBD |
+| CA‑AB | PIPA Alberta + Prompt Payment & Construction Lien Act | ✓ | `alberta/pipa-construction.json` |
+| CA‑AB | Public Works Act, WCB clearance | ✗ | TBD |
+| CA‑MB | PIPITPA + Builders' Liens Act | ✓ | `manitoba/pipitpa-builders-liens.json` |
+| CA‑SK | FOIP + Builders' Lien Act | ✓ | `saskatchewan/foip-builders-lien.json` |
+| CA‑NB | RTIPPA + Mechanics' Lien Act | ✓ | `new-brunswick/lien-rtippa.json` |
+| CA‑NS | PIIDPA + Builders' Lien Act | ✓ | `nova-scotia/piidpa-builders-lien.json` |
+| CA‑PE | FOIPP + Mechanics' Lien Act | ✓ | `prince-edward-island/foipp-mechanics-lien.json` |
+| CA‑NL | Public Procurement Act + ATIPPA | ✓ | `newfoundland-and-labrador/procurement-atippa.json` |
+| CA‑YT | ATIPP | ✓ | `yukon/atipp.json` |
+| CA‑NT | ATIPP | ✓ | `northwest-territories/atipp.json` |
+| CA‑NU | ATIPP + Nunavut Agreement Art. 24 (Inuit content) | ✓ | `nunavut/atipp-nlca.json` |
 | EU | GDPR — Art. 28, Ch. V transfers | ✓ | `eu/gdpr.json` |
 | EU | EU AI Act, ePrivacy | ✗ | TBD |
 
-Each seeded file holds 1–2 example rules to establish shape and prove the
-schema scales across statutes; full corpus build-out is a counsel-led
-effort tracked separately.
+**Every seeded rule carries `last_reviewed_by: counsel:STUB-VERIFY`.** The
+schema and structure are engineered; the legal substance — exact
+section numbers, current monetary thresholds, recent amendments — must
+be ratified by counsel before the layer is wired into production.
+Counsel review is the gating step regardless of who drafted the file.
 
 ## Wiring into FastAPI
 

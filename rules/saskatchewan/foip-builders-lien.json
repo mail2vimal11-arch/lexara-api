@@ -1,0 +1,51 @@
+{
+  "rules": [
+    {
+      "id": "sk-foip-cross-border",
+      "statute": "FOIP-Saskatchewan",
+      "jurisdiction": "CA-SK",
+      "section": "Freedom of Information and Protection of Privacy Act, s.29 (disclosure outside Canada)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1992-04-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://publications.saskatchewan.ca/api/v1/products/521/formats/810/download",
+      "applies_when": {
+        "buyer_types": ["provincial-sk", "broader-public-sector-sk"]
+      },
+      "forbid": {
+        "move_types": ["transfer_sk_personal_data_no_safeguard"],
+        "text_patterns": [
+          "(?i)\\btransfer\\s+(saskatchewan|sk)\\s+personal information\\s+outside\\s+(canada|saskatchewan)\\b(?![^.]{0,300}\\bequivalent\\s+protection\\b)"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Saskatchewan FOIP restricts disclosure of personal information held by public bodies outside Canada absent statutory authority and equivalent protection.",
+      "remediation_hint": "Document statutory authority for the disclosure and require contractual safeguards equivalent to FOIP standards."
+    },
+    {
+      "id": "sk-builders-lien-holdback",
+      "statute": "Builders-Lien-Act-Saskatchewan",
+      "jurisdiction": "CA-SK",
+      "section": "The Builders' Lien Act, s.34 (10% holdback)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1985-08-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://publications.saskatchewan.ca/api/v1/products/619/formats/954/download",
+      "applies_when": {
+        "industries": ["construction", "trades"],
+        "buyer_types": ["provincial-sk", "broader-public-sector-sk", "municipal-sk", "private-sk"]
+      },
+      "forbid": {
+        "move_types": ["waive_statutory_holdback"],
+        "text_patterns": [
+          "(?i)\\bwaive\\s+(the\\s+)?builders'?\\s+lien\\s+holdback\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Saskatchewan Builders' Lien Act fixes a 10% statutory holdback that may not be waived.",
+      "remediation_hint": "Retain the statutory 10% holdback; release per the Act's lien-expiry timeline."
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "rules": [
+    {
+      "id": "nt-atipp-disclosure",
+      "statute": "ATIPP-NWT",
+      "jurisdiction": "CA-NT",
+      "section": "Access to Information and Protection of Privacy Act (NWT), s.48",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1997-12-31",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.justice.gov.nt.ca/en/files/legislation/access-to-information-and-protection-of-privacy/access-to-information-and-protection-of-privacy.a.pdf",
+      "applies_when": {
+        "buyer_types": ["territorial-nt", "broader-public-sector-nt"]
+      },
+      "forbid": {
+        "move_types": ["disclose_personal_info_no_consent"],
+        "text_patterns": [
+          "(?i)\\bdisclose\\s+personal information\\b[^.]{0,200}\\bwithout (consent|statutory authority)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "NWT ATIPP restricts disclosure of personal information held by public bodies absent consent or statutory authority.",
+      "remediation_hint": "Cite the statutory exception or obtain documented consent."
+    }
+  ]
+}

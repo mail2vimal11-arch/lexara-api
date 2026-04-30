@@ -1,0 +1,51 @@
+{
+  "rules": [
+    {
+      "id": "mb-pipitpa-cross-border",
+      "statute": "PIPITPA-Manitoba",
+      "jurisdiction": "CA-MB",
+      "section": "Personal Information Protection and Identity Theft Prevention Act, Part 4 (use & disclosure)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "2013-09-13",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://web2.gov.mb.ca/laws/statutes/ccsm/p033-7e.php",
+      "applies_when": {
+        "buyer_types": ["provincial-mb", "private-mb"]
+      },
+      "forbid": {
+        "move_types": ["disclose_personal_info_no_consent"],
+        "text_patterns": [
+          "(?i)\\bdisclose\\s+personal information\\b[^.]{0,200}\\bwithout (consent|notification)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Manitoba PIPITPA requires consent for disclosure of personal information by private organisations, with statutory exceptions; silent disclosure is a contravention.",
+      "remediation_hint": "Document consent mechanism or rely on a recognised statutory exception with citation."
+    },
+    {
+      "id": "mb-builders-liens-holdback",
+      "statute": "Builders-Liens-Act-Manitoba",
+      "jurisdiction": "CA-MB",
+      "section": "The Builders' Liens Act, s.24 (statutory holdback)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1981-07-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://web2.gov.mb.ca/laws/statutes/ccsm/b091e.php",
+      "applies_when": {
+        "industries": ["construction", "trades"],
+        "buyer_types": ["provincial-mb", "broader-public-sector-mb", "municipal-mb", "private-mb"]
+      },
+      "forbid": {
+        "move_types": ["waive_statutory_holdback"],
+        "text_patterns": [
+          "(?i)\\bwaive\\s+(the\\s+)?builders'?\\s+lien\\s+holdback\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Manitoba Builders' Liens Act requires a 7.5% holdback that may not be waived; releases follow the Act's lien-expiry rules.",
+      "remediation_hint": "Maintain the statutory holdback (7.5% — verify current rate) and release per the Act."
+    }
+  ]
+}

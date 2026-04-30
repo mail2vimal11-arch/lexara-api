@@ -1,0 +1,52 @@
+{
+  "rules": [
+    {
+      "id": "ab-pipa-employee-personal-info",
+      "statute": "PIPA-Alberta",
+      "jurisdiction": "CA-AB",
+      "section": "Personal Information Protection Act (Alberta), s.15 (employee personal information)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "2004-01-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://kings-printer.alberta.ca/1266.cfm?page=P06P5.cfm",
+      "applies_when": {
+        "buyer_types": ["provincial-ab", "private-ab"]
+      },
+      "forbid": {
+        "move_types": ["collect_employee_data_no_notice"],
+        "text_patterns": [
+          "(?i)\\bcollect\\s+(employee|worker)\\s+personal information\\b[^.]{0,200}\\bwithout (notice|notification)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Alberta PIPA s.15 requires reasonable notice to employees before collection, use or disclosure of employee personal information. Silent collection is a contravention.",
+      "remediation_hint": "Provide written notice describing the purposes for which employee personal information will be collected, used and disclosed."
+    },
+    {
+      "id": "ab-builders-lien-holdback",
+      "statute": "Prompt-Payment-and-Construction-Lien-Act-Alberta",
+      "jurisdiction": "CA-AB",
+      "section": "PPCLA, Part 2 (holdback) and Part 4 (prompt payment, effective 2022-08-29)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "2022-08-29",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://kings-printer.alberta.ca/1266.cfm?page=P12P5.cfm",
+      "applies_when": {
+        "industries": ["construction", "trades"],
+        "buyer_types": ["provincial-ab", "broader-public-sector-ab", "municipal-ab", "private-ab"]
+      },
+      "forbid": {
+        "move_types": ["waive_statutory_holdback", "extend_payment_terms_beyond_statute"],
+        "text_patterns": [
+          "(?i)\\bnet\\s+(45|60|75|90|120)\\b",
+          "(?i)\\bwaive\\s+(the\\s+)?(builders'?|construction)\\s+(lien\\s+)?holdback\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Alberta Prompt Payment and Construction Lien Act mandates payment of a proper invoice within 28 days and prohibits waiver of the statutory holdback (10% in most cases).",
+      "remediation_hint": "Net 28 days from proper invoice; 10% holdback released per the Act."
+    }
+  ]
+}

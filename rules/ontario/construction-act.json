@@ -11,7 +11,8 @@
       "last_reviewed_by": "counsel:STUB-VERIFY",
       "source_url": "https://www.ontario.ca/laws/statute/90c30",
       "applies_when": {
-        "industries": ["construction", "trades", "engineering-services"]
+        "industries": ["construction", "trades", "engineering-services"],
+        "buyer_types": ["provincial-on", "broader-public-sector-on", "municipal-on", "private-on", "federal"]
       },
       "forbid": {
         "move_types": ["extend_payment_terms_beyond_statute"],
@@ -35,7 +36,8 @@
       "last_reviewed_by": "counsel:STUB-VERIFY",
       "source_url": "https://www.ontario.ca/laws/statute/90c30",
       "applies_when": {
-        "industries": ["construction", "trades"]
+        "industries": ["construction", "trades"],
+        "buyer_types": ["provincial-on", "broader-public-sector-on", "municipal-on", "private-on", "federal"]
       },
       "forbid": {
         "move_types": ["waive_statutory_holdback", "increase_holdback_above_statute"],

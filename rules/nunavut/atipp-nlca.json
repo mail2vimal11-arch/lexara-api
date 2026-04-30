@@ -1,0 +1,50 @@
+{
+  "rules": [
+    {
+      "id": "nu-atipp-disclosure",
+      "statute": "ATIPP-Nunavut",
+      "jurisdiction": "CA-NU",
+      "section": "Access to Information and Protection of Privacy Act (Nunavut), s.48",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1999-04-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.nunavutlegislation.ca/en/consolidated-law/access-to-information-and-protection-of-privacy-act-consolidation",
+      "applies_when": {
+        "buyer_types": ["territorial-nu", "broader-public-sector-nu"]
+      },
+      "forbid": {
+        "move_types": ["disclose_personal_info_no_consent"],
+        "text_patterns": [
+          "(?i)\\bdisclose\\s+personal information\\b[^.]{0,200}\\bwithout (consent|statutory authority)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Nunavut ATIPP restricts disclosure of personal information held by public bodies absent consent or statutory authority.",
+      "remediation_hint": "Cite the statutory exception or obtain documented consent."
+    },
+    {
+      "id": "nu-nlca-art24-inuit-content",
+      "statute": "Nunavut-Agreement-Art-24",
+      "jurisdiction": "CA-NU",
+      "section": "Nunavut Agreement, Article 24 (Government Contracts)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1993-07-09",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://nlca.tunngavik.com/?page_id=1437",
+      "applies_when": {
+        "buyer_types": ["federal", "territorial-nu"]
+      },
+      "forbid": {
+        "move_types": ["remove_inuit_content_requirement"],
+        "text_patterns": [
+          "(?i)\\bremove\\s+(the\\s+)?inuit\\s+(content|firm|preference)\\b"
+        ]
+      },
+      "severity": "soft_warn",
+      "reason": "Nunavut Agreement Article 24 obliges Government to provide reasonable support and assistance to Inuit firms for government contracting in the Nunavut Settlement Area, including bid solicitation criteria favourable to Inuit firms. CFTA permits this carve-out.",
+      "remediation_hint": "Confirm the procurement is in the NSA and that Inuit-content criteria are calibrated per the NNI Policy; do not strip without legal review."
+    }
+  ]
+}
