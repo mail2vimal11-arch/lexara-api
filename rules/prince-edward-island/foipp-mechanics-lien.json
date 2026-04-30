@@ -1,0 +1,51 @@
+{
+  "rules": [
+    {
+      "id": "pe-foipp-disclosure",
+      "statute": "FOIPP-PEI",
+      "jurisdiction": "CA-PE",
+      "section": "Freedom of Information and Protection of Privacy Act, s.37 (disclosure of personal information)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "2002-11-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.princeedwardisland.ca/sites/default/files/legislation/F-15-01-Freedom%20of%20Information%20and%20Protection%20of%20Privacy%20Act.pdf",
+      "applies_when": {
+        "buyer_types": ["provincial-pe", "broader-public-sector-pe"]
+      },
+      "forbid": {
+        "move_types": ["disclose_personal_info_no_consent"],
+        "text_patterns": [
+          "(?i)\\bdisclose\\s+personal information\\b[^.]{0,200}\\bwithout (consent|statutory authority)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "PEI FOIPP restricts disclosure of personal information held by public bodies absent consent or statutory authority.",
+      "remediation_hint": "Cite the statutory exception relied on or obtain documented consent."
+    },
+    {
+      "id": "pe-mechanics-lien-holdback",
+      "statute": "Mechanics-Lien-Act-PE",
+      "jurisdiction": "CA-PE",
+      "section": "Mechanics' Lien Act, s.10 (holdback)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1988-01-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.princeedwardisland.ca/sites/default/files/legislation/m-04-mechanics_lien_act.pdf",
+      "applies_when": {
+        "industries": ["construction", "trades"],
+        "buyer_types": ["provincial-pe", "broader-public-sector-pe", "municipal-pe", "private-pe"]
+      },
+      "forbid": {
+        "move_types": ["waive_statutory_holdback"],
+        "text_patterns": [
+          "(?i)\\bwaive\\s+(the\\s+)?mechanics'?\\s+lien\\s+holdback\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "PEI Mechanics' Lien Act establishes a non-waivable holdback; verify current rate.",
+      "remediation_hint": "Apply the statutory holdback; release per the Act's lien-expiry timeline."
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "rules": [
+    {
+      "id": "soga-on-implied-warranty-merchantability",
+      "statute": "Sale-of-Goods-Act-Ontario",
+      "jurisdiction": "CA-ON",
+      "section": "s.15(2) (implied condition of merchantable quality)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1990-01-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.ontario.ca/laws/statute/90s01",
+      "applies_when": {
+        "industries": ["goods", "manufacturing", "supplies", "any"]
+      },
+      "forbid": {
+        "move_types": ["exclude_implied_warranties_consumer"],
+        "text_patterns": [
+          "(?i)\\bexclude(s|d)?\\s+(all\\s+)?implied\\s+(warranties|conditions)\\b[^.]{0,200}\\b(consumer|natural person)\\b"
+        ]
+      },
+      "severity": "soft_warn",
+      "reason": "Sale of Goods Act implies a condition of merchantable quality and fitness for purpose. In B2B contracts these can be excluded with clear language; in consumer transactions the Consumer Protection Act, 2002 voids most exclusions.",
+      "remediation_hint": "Confirm the buyer is not a 'consumer' under the Consumer Protection Act before excluding warranties; in B2B use 'sold AS IS, WHERE IS, with all faults' plus an enumeration of excluded warranties."
+    }
+  ]
+}

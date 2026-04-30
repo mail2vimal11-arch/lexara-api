@@ -1,0 +1,25 @@
+{
+  "rules": [
+    {
+      "id": "patent-act-49-employee-inventions",
+      "statute": "Patent-Act",
+      "jurisdiction": "CA",
+      "section": "s.49 (re: assignment formalities)",
+      "version_as_of": "2024-06-20",
+      "effective_date": "1989-10-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://laws-lois.justice.gc.ca/eng/acts/p-4/section-49.html",
+      "applies_when": {},
+      "forbid": {
+        "move_types": [],
+        "text_patterns": [
+          "(?i)\\bassign(s|ed|ment)?\\s+(?:all\\s+)?(patent|invention)s?\\b[^.]{0,200}\\b(orally|verbally)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Patent Act s.49 requires assignments of patents (and applications) to be in writing. Oral 'assignments' are unenforceable against subsequent assignees and at the Patent Office.",
+      "remediation_hint": "Convert any oral assignment to a written, signed assignment registered with CIPO."
+    }
+  ]
+}

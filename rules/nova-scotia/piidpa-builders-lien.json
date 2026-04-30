@@ -1,0 +1,51 @@
+{
+  "rules": [
+    {
+      "id": "ns-piidpa-foreign-disclosure",
+      "statute": "PIIDPA-NS",
+      "jurisdiction": "CA-NS",
+      "section": "Personal Information International Disclosure Protection Act, s.5",
+      "version_as_of": "2024-06-01",
+      "effective_date": "2006-11-15",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://nslegislature.ca/sites/default/files/legc/statutes/personal%20information%20international%20disclosure%20protection.pdf",
+      "applies_when": {
+        "buyer_types": ["provincial-ns", "broader-public-sector-ns"]
+      },
+      "forbid": {
+        "move_types": ["store_ns_data_outside_canada"],
+        "text_patterns": [
+          "(?i)\\b(store|host|process)\\s+(nova scotia|ns)\\s+personal information\\s+(outside|in)\\s+(?!canada)[A-Z][\\w ]+"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "PIIDPA requires public bodies to ensure that personal information in their custody/control is stored only in Canada and accessed only from Canada, except in specified circumstances.",
+      "remediation_hint": "Use Canadian-resident data centres; document any reliance on a statutory exception (e.g., Minister's authorisation under s.9)."
+    },
+    {
+      "id": "ns-builders-lien-holdback",
+      "statute": "Builders-Lien-Act-NS",
+      "jurisdiction": "CA-NS",
+      "section": "Builders' Lien Act, s.13 (holdback)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1989-04-19",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://nslegislature.ca/sites/default/files/legc/statutes/builders%27%20lien.pdf",
+      "applies_when": {
+        "industries": ["construction", "trades"],
+        "buyer_types": ["provincial-ns", "broader-public-sector-ns", "municipal-ns", "private-ns"]
+      },
+      "forbid": {
+        "move_types": ["waive_statutory_holdback"],
+        "text_patterns": [
+          "(?i)\\bwaive\\s+(the\\s+)?builders'?\\s+lien\\s+holdback\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Nova Scotia Builders' Lien Act establishes a non-waivable holdback (10%).",
+      "remediation_hint": "Maintain 10% holdback; release per the Act."
+    }
+  ]
+}

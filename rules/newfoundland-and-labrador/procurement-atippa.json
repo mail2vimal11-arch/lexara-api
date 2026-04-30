@@ -1,0 +1,51 @@
+{
+  "rules": [
+    {
+      "id": "nl-public-procurement-act-fairness",
+      "statute": "Public-Procurement-Act-NL",
+      "jurisdiction": "CA-NL",
+      "section": "Public Procurement Act, s.5 (fair, open, transparent procurement)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "2018-04-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.assembly.nl.ca/Legislation/sr/statutes/p41-001.htm",
+      "applies_when": {
+        "buyer_types": ["provincial-nl", "broader-public-sector-nl", "municipal-nl"]
+      },
+      "forbid": {
+        "move_types": ["sole_source_no_justification", "skip_competitive_process"],
+        "text_patterns": [
+          "(?i)\\b(sole[-\\s]?source|single[-\\s]?source)\\s+award\\b[^.]{0,300}\\bwithout (justification|cabinet approval|approval)\\b",
+          "(?i)\\bskip\\s+(the\\s+)?competitive\\s+(process|bidding)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Newfoundland and Labrador Public Procurement Act requires fair, open, and transparent processes; sole-source awards are restricted to defined exceptions and require documented justification.",
+      "remediation_hint": "Conduct a competitive process or invoke a documented exception under the Act and supporting regulations."
+    },
+    {
+      "id": "nl-atippa-personal-info",
+      "statute": "ATIPPA-NL",
+      "jurisdiction": "CA-NL",
+      "section": "Access to Information and Protection of Privacy Act, s.69 (disclosure)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "2015-06-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.assembly.nl.ca/legislation/sr/statutes/a01-2.htm",
+      "applies_when": {
+        "buyer_types": ["provincial-nl", "broader-public-sector-nl"]
+      },
+      "forbid": {
+        "move_types": ["disclose_personal_info_no_consent"],
+        "text_patterns": [
+          "(?i)\\bdisclose\\s+personal information\\b[^.]{0,200}\\bwithout (consent|statutory authority)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "ATIPPA restricts disclosure of personal information held by public bodies absent consent or a statutory exception.",
+      "remediation_hint": "Cite the statutory exception or obtain documented consent."
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "rules": [
+    {
+      "id": "pipeda-cross-border-comparable-protection",
+      "statute": "PIPEDA",
+      "jurisdiction": "CA",
+      "section": "Schedule 1, Principle 4.1.3",
+      "version_as_of": "2024-06-20",
+      "effective_date": "2004-01-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://laws-lois.justice.gc.ca/eng/acts/p-8.6/",
+      "applies_when": {
+        "industries": ["any", "saas", "professional-services", "data-processing"]
+      },
+      "forbid": {
+        "move_types": ["transfer_personal_data_cross_border_no_dpa"],
+        "text_patterns": [
+          "(?i)\\b(transfer|process)\\s+personal (data|information)\\s+(to|in)\\s+(?!canada)[A-Z][\\w ]+\\b(?![^.]{0,300}\\b(comparable|equivalent)\\s+(level|protection)\\b)"
+        ]
+      },
+      "severity": "soft_warn",
+      "reason": "Under PIPEDA Principle 4.1.3 the transferring organisation remains accountable for personal information transferred to a third party for processing. Cross-border transfers require contractual safeguards ensuring comparable protection.",
+      "remediation_hint": "Insert a Data Processing Addendum (DPA) requiring the recipient to apply protections at least equivalent to PIPEDA, plus breach notification, sub-processor controls, and audit rights."
+    }
+  ]
+}

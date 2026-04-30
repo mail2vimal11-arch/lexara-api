@@ -1,0 +1,26 @@
+{
+  "rules": [
+    {
+      "id": "casl-6-cem-consent",
+      "statute": "CASL",
+      "jurisdiction": "CA",
+      "section": "s.6 (Canada's Anti-Spam Legislation)",
+      "version_as_of": "2024-06-20",
+      "effective_date": "2014-07-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://laws-lois.justice.gc.ca/eng/acts/E-1.6/",
+      "applies_when": {},
+      "forbid": {
+        "move_types": ["remove_cem_unsubscribe", "add_implicit_consent_clause"],
+        "text_patterns": [
+          "(?i)\\bcustomer\\s+consents\\s+to\\s+receive\\s+(commercial electronic messages|cems|marketing emails)\\b[^.]{0,200}\\b(implicit|implied|by accepting)\\b",
+          "(?i)\\b(no|without)\\s+unsubscribe\\s+(mechanism|link|option)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "CASL s.6 requires (a) express consent (with limited implied-consent exceptions), (b) sender ID, and (c) a working unsubscribe mechanism in every commercial electronic message. Penalties up to $10M per violation for organisations.",
+      "remediation_hint": "Use opt-in consent capture with audit log, identify the sender, and include a one-click unsubscribe that takes effect within 10 business days."
+    }
+  ]
+}

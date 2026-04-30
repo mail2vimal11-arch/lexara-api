@@ -1,0 +1,50 @@
+{
+  "rules": [
+    {
+      "id": "gdpr-28-processor-required-terms",
+      "statute": "GDPR",
+      "jurisdiction": "EU",
+      "section": "Article 28(3)",
+      "version_as_of": "2024-06-20",
+      "effective_date": "2018-05-25",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://gdpr-info.eu/art-28-gdpr/",
+      "applies_when": {
+        "industries": ["any", "saas", "professional-services", "data-processing"]
+      },
+      "forbid": {
+        "move_types": ["remove_data_processor_clause", "weaken_dpa_terms"],
+        "text_patterns": [
+          "(?i)\\b(processor|sub-processor)\\s+(may|can)\\s+process\\s+personal data\\s+(without|free of)\\s+(written instructions|prior authori[sz]ation)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "GDPR Art. 28(3) requires processor contracts to set out subject-matter, duration, nature/purpose of processing, type of personal data, categories of data subjects, and the controller's obligations and rights. A processor cannot act without documented controller instructions.",
+      "remediation_hint": "Restore the data-processing addendum with the eight Art. 28(3) elements: instruction obligation, confidentiality, security (Art. 32), sub-processor authorisation, data-subject rights assistance, Art. 32-36 cooperation, return/deletion at end, audit rights."
+    },
+    {
+      "id": "gdpr-44-international-transfer-mechanism",
+      "statute": "GDPR",
+      "jurisdiction": "EU",
+      "section": "Chapter V (Articles 44–50)",
+      "version_as_of": "2024-06-20",
+      "effective_date": "2018-05-25",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://gdpr-info.eu/chapter-5/",
+      "applies_when": {
+        "industries": ["any", "saas", "professional-services", "data-processing"]
+      },
+      "forbid": {
+        "move_types": ["transfer_eu_data_no_safeguard"],
+        "text_patterns": [
+          "(?i)\\btransfer\\s+(personal data|eu data)\\s+(to|outside)\\s+(?!eu|eea|european)[A-Z][\\w ]+\\b(?![^.]{0,400}\\b(scc|standard contractual clauses|adequacy decision|bcr|binding corporate rules)\\b)"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "GDPR Chapter V prohibits transfers of personal data outside the EEA unless a transfer mechanism applies (adequacy decision, SCCs, BCRs, or a derogation). Canada has partial adequacy (commercial PIPEDA-covered activity only).",
+      "remediation_hint": "Adopt the 2021 EU SCCs (Module 2: controller-to-processor) plus a transfer impact assessment, or rely on Canada's commercial-activity adequacy decision and document scope."
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "rules": [
+    {
+      "id": "nb-mechanics-lien-holdback",
+      "statute": "Mechanics-Lien-Act-NB",
+      "jurisdiction": "CA-NB",
+      "section": "Mechanics' Lien Act, s.15 (holdback)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1973-01-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://laws.gnb.ca/en/showdoc/cs/M-6",
+      "applies_when": {
+        "industries": ["construction", "trades"],
+        "buyer_types": ["provincial-nb", "broader-public-sector-nb", "municipal-nb", "private-nb"]
+      },
+      "forbid": {
+        "move_types": ["waive_statutory_holdback"],
+        "text_patterns": [
+          "(?i)\\bwaive\\s+(the\\s+)?mechanics'?\\s+lien\\s+holdback\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "New Brunswick Mechanics' Lien Act establishes a non-waivable holdback; verify current rate (commonly 15% on contracts under $15,000 and lower on larger contracts).",
+      "remediation_hint": "Apply the statutory rate (verify with counsel) and release per the lien-expiry timeline."
+    },
+    {
+      "id": "nb-rtippa-public-procurement",
+      "statute": "RTIPPA-NB",
+      "jurisdiction": "CA-NB",
+      "section": "Right to Information and Protection of Privacy Act, s.42 (disclosure of personal information)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "2010-09-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://laws.gnb.ca/en/showdoc/cs/R-10.6",
+      "applies_when": {
+        "buyer_types": ["provincial-nb", "broader-public-sector-nb"]
+      },
+      "forbid": {
+        "move_types": ["disclose_personal_info_no_consent"],
+        "text_patterns": [
+          "(?i)\\bdisclose\\s+personal information\\b[^.]{0,200}\\bwithout (consent|statutory authority)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "RTIPPA restricts disclosure of personal information by public bodies absent consent or statutory authority.",
+      "remediation_hint": "Cite the statutory exception relied on, or obtain documented consent."
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "rules": [
+    {
+      "id": "qc-charter-french-language-bill96",
+      "statute": "Charter-of-the-French-Language",
+      "jurisdiction": "CA-QC",
+      "section": "Charter of the French Language, s.55 + s.21.5 (contracts of the civil administration)",
+      "version_as_of": "2024-06-01",
+      "effective_date": "2022-06-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.legisquebec.gouv.qc.ca/en/document/cs/c-11",
+      "applies_when": {
+        "buyer_types": ["provincial-qc", "broader-public-sector-qc", "municipal-qc"]
+      },
+      "forbid": {
+        "move_types": ["execute_qc_public_contract_english_only"],
+        "text_patterns": [
+          "(?i)\\bcontract\\s+(executed|drafted|prepared)\\s+(only\\s+)?in\\s+english\\b",
+          "(?i)\\benglish[-\\s]only\\s+contract\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Bill 96 amendments to the Charter of the French Language require contracts of the civil administration to be drawn up in French. Exclusively-English contracts with Quebec public bodies are not enforceable absent specified exceptions.",
+      "remediation_hint": "Execute the contract in French (with optional certified English translation), or invoke an enumerated exception with counsel sign-off."
+    }
+  ]
+}

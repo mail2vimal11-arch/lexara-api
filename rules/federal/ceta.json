@@ -1,0 +1,30 @@
+{
+  "rules": [
+    {
+      "id": "ceta-19-eu-supplier-nondiscrim",
+      "statute": "CETA",
+      "jurisdiction": "CA",
+      "section": "Chapter 19 (Government Procurement)",
+      "version_as_of": "2024-07-01",
+      "effective_date": "2017-09-21",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.international.gc.ca/trade-commerce/trade-agreements-accords-commerciaux/agr-acc/ceta-aecg/text-texte/toc-tdm.aspx",
+      "applies_when": {
+        "procurement_value_gte_cad": 240000,
+        "buyer_types": ["federal", "provincial", "territorial"],
+        "covered_under_ceta_annex": true
+      },
+      "forbid": {
+        "move_types": ["add_local_preference", "exclude_eu_suppliers"],
+        "text_patterns": [
+          "(?i)\\bexcluding (eu|european union) (suppliers|firms|bidders)\\b",
+          "(?i)\\b(canadian|domestic) suppliers? (preferred|favoured|favored)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "CETA Chapter 19 requires non-discriminatory treatment of EU suppliers in covered procurement above the goods/services threshold.",
+      "remediation_hint": "Use neutral evaluation criteria; if origin matters for security or operational reasons, cite the specific CETA exception (national security, public morals)."
+    }
+  ]
+}

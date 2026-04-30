@@ -1,0 +1,47 @@
+{
+  "rules": [
+    {
+      "id": "copyright-act-14.1-moral-rights-waiver",
+      "statute": "Copyright-Act",
+      "jurisdiction": "CA",
+      "section": "s.14.1(2)",
+      "version_as_of": "2024-06-20",
+      "effective_date": "1988-06-08",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://laws-lois.justice.gc.ca/eng/acts/c-42/section-14.1.html",
+      "applies_when": {},
+      "forbid": {
+        "move_types": ["assign_moral_rights"],
+        "text_patterns": [
+          "(?i)\\bassigns?\\s+(?:all\\s+)?moral rights\\b",
+          "(?i)\\btransfer(s|red)?\\s+moral rights\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Copyright Act s.14.1(2) makes moral rights non-assignable in Canada. Only a written waiver is permitted; an attempted assignment is void.",
+      "remediation_hint": "Replace 'assigns moral rights' with 'waives moral rights' in writing. The waiver may be granted to any person and may be granted in whole or in part."
+    },
+    {
+      "id": "copyright-act-13.3-author-first-owner",
+      "statute": "Copyright-Act",
+      "jurisdiction": "CA",
+      "section": "s.13(3)",
+      "version_as_of": "2024-06-20",
+      "effective_date": "1988-06-08",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://laws-lois.justice.gc.ca/eng/acts/c-42/section-13.html",
+      "applies_when": {},
+      "forbid": {
+        "move_types": [],
+        "text_patterns": [
+          "(?i)\\bcontractor\\s+(retains|owns|holds)\\s+(all\\s+)?(copyright|ip|intellectual property)\\b(?![^.]{0,200}except)"
+        ]
+      },
+      "severity": "soft_warn",
+      "reason": "Copyright Act s.13(3) makes the employer first owner of copyright in works made by employees in the course of employment, but contractors are first owners by default. Failing to require an express written assignment from a contractor leaves the customer with only a licence.",
+      "remediation_hint": "Insert an express written assignment of copyright from contractor to customer for all foreground IP, signed under s.13(4)."
+    }
+  ]
+}
