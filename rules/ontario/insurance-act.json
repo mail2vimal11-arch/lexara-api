@@ -1,0 +1,51 @@
+{
+  "rules": [
+    {
+      "id": "insurance-on-min-cgl",
+      "statute": "Ontario-Procurement-Directive",
+      "jurisdiction": "CA-ON",
+      "section": "OPS Procurement Directive — Insurance Requirements",
+      "version_as_of": "2024-04-01",
+      "effective_date": "2018-04-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.ontario.ca/page/ops-procurement-directive",
+      "applies_when": {
+        "buyer_types": ["provincial-on", "broader-public-sector-on"]
+      },
+      "forbid": {
+        "move_types": ["reduce_insurance_below_minimum"],
+        "text_patterns": [
+          "(?i)\\b(commercial general liability|cgl)\\b[^.]{0,200}\\$\\s*([0-9]{1,3}(,[0-9]{3})?|[0-4]\\s*million|[0-4],000,000)\\b(?!.*per occurrence.*aggregate)"
+        ]
+      },
+      "severity": "soft_warn",
+      "reason": "Ontario public-sector contracts typically require minimum $5M CGL per occurrence with aggregate limits. Lower limits expose the buyer and may breach procurement directives; verify exact figure in the applicable directive.",
+      "remediation_hint": "Maintain CGL of at least $5M per occurrence/$5M aggregate, name the Crown as additional insured, and provide certificate of insurance prior to contract award."
+    },
+    {
+      "id": "wsia-on-clearance-cert",
+      "statute": "WSIA-Ontario",
+      "jurisdiction": "CA-ON",
+      "section": "Workplace Safety and Insurance Act, s.141",
+      "version_as_of": "2024-06-01",
+      "effective_date": "1998-01-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.ontario.ca/laws/statute/97w16",
+      "applies_when": {
+        "industries": ["construction", "trades", "facilities", "transport"],
+        "buyer_types": ["provincial-on", "broader-public-sector-on", "municipal"]
+      },
+      "forbid": {
+        "move_types": ["waive_wsib_clearance"],
+        "text_patterns": [
+          "(?i)\\bwaive(d|s)?\\s+(the\\s+)?(wsib|wsia)\\s+(clearance|certificate)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "WSIA s.141 makes a buyer engaging a contractor in a Schedule 1 industry liable for unpaid WSIB premiums unless the contractor produces a valid clearance certificate. Waiving the certificate transfers statutory liability to the buyer.",
+      "remediation_hint": "Require a valid WSIB clearance certificate at award and monthly during the contract term; renew before each progress payment."
+    }
+  ]
+}

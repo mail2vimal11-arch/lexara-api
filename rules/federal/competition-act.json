@@ -1,0 +1,27 @@
+{
+  "rules": [
+    {
+      "id": "competition-act-47-bidrigging",
+      "statute": "Competition-Act",
+      "jurisdiction": "CA",
+      "section": "s.47",
+      "version_as_of": "2024-06-20",
+      "effective_date": "1986-01-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://laws-lois.justice.gc.ca/eng/acts/c-34/section-47.html",
+      "applies_when": {},
+      "forbid": {
+        "move_types": ["coordinate_bid_with_competitor", "agree_not_to_bid", "share_bid_pricing_with_competitor"],
+        "text_patterns": [
+          "(?i)\\b(coordinate|coordinated|align(ed)?)\\s+(our|the)\\s+bid\\b",
+          "(?i)\\bagree(d|ment)?\\s+not to (bid|submit)\\b",
+          "(?i)\\bshare (our|the) (bid|pricing|quote) with [A-Z][\\w &]+\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Competition Act s.47 makes bid-rigging an indictable criminal offence: agreements between bidders to coordinate, withdraw, or share bid information are prohibited regardless of contract value.",
+      "remediation_hint": "There is no compliant variant of this move. The negotiation must be restructured to remove any coordination with competing bidders."
+    }
+  ]
+}

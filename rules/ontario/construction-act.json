@@ -1,0 +1,52 @@
+{
+  "rules": [
+    {
+      "id": "construction-act-on-prompt-payment",
+      "statute": "Construction-Act-Ontario",
+      "jurisdiction": "CA-ON",
+      "section": "Part I.1 (Prompt Payment), s.6.1–6.9",
+      "version_as_of": "2019-10-01",
+      "effective_date": "2019-10-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.ontario.ca/laws/statute/90c30",
+      "applies_when": {
+        "industries": ["construction", "trades", "engineering-services"]
+      },
+      "forbid": {
+        "move_types": ["extend_payment_terms_beyond_statute"],
+        "text_patterns": [
+          "(?i)\\bpayment\\s+(within|in)\\s+(45|60|75|90|120)\\s+days\\b",
+          "(?i)\\bnet\\s+(45|60|75|90|120)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Ontario Construction Act mandates payment to a contractor within 28 days of a proper invoice (s.6.4). Contractual terms purporting to extend this period are void to the extent of the inconsistency.",
+      "remediation_hint": "Use 'Net 28 days from receipt of proper invoice' or shorter; longer terms are unenforceable for in-scope construction work."
+    },
+    {
+      "id": "construction-act-on-holdback",
+      "statute": "Construction-Act-Ontario",
+      "jurisdiction": "CA-ON",
+      "section": "Part IV (Holdbacks), s.22",
+      "version_as_of": "2019-10-01",
+      "effective_date": "2019-10-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.ontario.ca/laws/statute/90c30",
+      "applies_when": {
+        "industries": ["construction", "trades"]
+      },
+      "forbid": {
+        "move_types": ["waive_statutory_holdback", "increase_holdback_above_statute"],
+        "text_patterns": [
+          "(?i)\\bwaive\\s+(the\\s+)?holdback\\b",
+          "(?i)\\bholdback\\s+of\\s+(15|20|25)\\s*%"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Construction Act fixes the statutory holdback at 10% of contract price (s.22). Waivers and amounts other than the statutory rate are not enforceable.",
+      "remediation_hint": "Use a 10% holdback released per the Act's certification + lien-period rules."
+    }
+  ]
+}

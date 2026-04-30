@@ -1,0 +1,27 @@
+{
+  "rules": [
+    {
+      "id": "law25-pia-cross-border",
+      "statute": "Law-25-Quebec",
+      "jurisdiction": "CA-QC",
+      "section": "Act respecting the protection of personal information in the private sector, s.17",
+      "version_as_of": "2024-09-22",
+      "effective_date": "2023-09-22",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.legisquebec.gouv.qc.ca/en/document/cs/p-39.1",
+      "applies_when": {
+        "buyer_types": ["provincial-qc", "private-qc"]
+      },
+      "forbid": {
+        "move_types": ["transfer_qc_personal_data_no_pia"],
+        "text_patterns": [
+          "(?i)\\btransfer\\s+(qu[ée]bec|qc)\\s+personal (data|information)\\s+outside (qu[ée]bec|the province)\\b(?![^.]{0,300}\\bprivacy impact assessment\\b)"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Quebec Law 25 (formerly Bill 64) requires a privacy impact assessment before personal information is communicated outside Quebec, and the recipient must offer protection equivalent to that under Quebec law.",
+      "remediation_hint": "Conduct a documented PIA; add equivalent-protection warranties from the recipient; appoint a Privacy Officer and disclose their contact information."
+    }
+  ]
+}

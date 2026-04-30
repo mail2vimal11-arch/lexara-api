@@ -1,0 +1,171 @@
+{
+  "cases": [
+    {
+      "name": "CFTA: explicit 'Canadian suppliers only' is a hard block above threshold",
+      "move": {
+        "clause_id": "evaluation-criteria",
+        "move_type": "add_local_preference",
+        "target_text": "Canadian suppliers only will be considered for this RFP."
+      },
+      "context": {
+        "procurement_value_cad": 250000,
+        "buyer_type": "federal",
+        "industry": "it-services",
+        "covered_under_ceta_annex": false
+      },
+      "expected_blocked": true,
+      "expected_rule_ids": ["cfta-502-localpref"]
+    },
+    {
+      "name": "CFTA: brand reference without 'or equivalent' is a hard block",
+      "move": {
+        "clause_id": "tech-spec",
+        "move_type": "add_brand_specific_requirement",
+        "target_text": "All servers must be made by Dell."
+      },
+      "context": {
+        "procurement_value_cad": 500000,
+        "buyer_type": "provincial",
+        "industry": "it-hardware"
+      },
+      "expected_blocked": true,
+      "expected_rule_ids": ["cfta-503-tech-spec-bias"]
+    },
+    {
+      "name": "CFTA: brand reference WITH 'or equivalent' is allowed",
+      "move": {
+        "clause_id": "tech-spec",
+        "move_type": "add_brand_specific_requirement",
+        "target_text": "All servers must be made by Dell or equivalent."
+      },
+      "context": {
+        "procurement_value_cad": 500000,
+        "buyer_type": "provincial",
+        "industry": "it-hardware"
+      },
+      "expected_blocked": false,
+      "expected_rule_ids": []
+    },
+    {
+      "name": "Competition Act: bid-rigging language is a hard block at any value",
+      "move": {
+        "clause_id": "side-letter",
+        "move_type": "coordinate_bid_with_competitor",
+        "target_text": "We agreed not to bid on this RFP so Acme Corp wins."
+      },
+      "context": {
+        "procurement_value_cad": 5000,
+        "buyer_type": "municipal",
+        "industry": "any"
+      },
+      "expected_blocked": true,
+      "expected_rule_ids": ["competition-act-47-bidrigging"]
+    },
+    {
+      "name": "Construction Act: Net-60 payment terms are a hard block in construction",
+      "move": {
+        "clause_id": "payment-terms",
+        "move_type": "extend_payment_terms_beyond_statute",
+        "target_text": "Net 60 days from invoice."
+      },
+      "context": {
+        "procurement_value_cad": 750000,
+        "buyer_type": "provincial-on",
+        "industry": "construction"
+      },
+      "expected_blocked": true,
+      "expected_rule_ids": ["construction-act-on-prompt-payment"]
+    },
+    {
+      "name": "BOBI: removing Ontario preference below CFTA threshold is a soft warn",
+      "move": {
+        "clause_id": "evaluation-criteria",
+        "move_type": "remove_ontario_preference_clause",
+        "target_text": "Strike: 'Preference will be given to Ontario-based suppliers.'"
+      },
+      "context": {
+        "procurement_value_cad": 80000,
+        "buyer_type": "provincial-on",
+        "industry": "professional-services"
+      },
+      "expected_blocked": false,
+      "expected_warned": true,
+      "expected_rule_ids": ["bobi-2022-ontario-preference"]
+    },
+    {
+      "name": "Copyright Act: assigning moral rights is a hard block (only waiver permitted)",
+      "move": {
+        "clause_id": "ip-assignment",
+        "move_type": "assign_moral_rights",
+        "target_text": "Contractor hereby assigns all moral rights in the Deliverables to Customer."
+      },
+      "context": {
+        "procurement_value_cad": 100000,
+        "buyer_type": "private",
+        "industry": "professional-services"
+      },
+      "expected_blocked": true,
+      "expected_rule_ids": ["copyright-act-14.1-moral-rights-waiver"]
+    },
+    {
+      "name": "Trademarks Act: licence without quality control is a hard block",
+      "move": {
+        "clause_id": "tm-licence",
+        "move_type": "grant_trademark_licence_without_quality_control",
+        "target_text": "Licensee may use the Mark without quality control by Licensor."
+      },
+      "context": {
+        "procurement_value_cad": 50000,
+        "buyer_type": "private",
+        "industry": "any"
+      },
+      "expected_blocked": true,
+      "expected_rule_ids": ["trademarks-act-50-licence-control"]
+    },
+    {
+      "name": "GDPR Art. 28: removing processor instruction obligation is a hard block",
+      "move": {
+        "clause_id": "dpa",
+        "move_type": "weaken_dpa_terms",
+        "target_text": "Processor may process personal data without prior authorization from Controller."
+      },
+      "context": {
+        "procurement_value_cad": 200000,
+        "buyer_type": "private",
+        "industry": "saas"
+      },
+      "expected_blocked": true,
+      "expected_rule_ids": ["gdpr-28-processor-required-terms"]
+    },
+    {
+      "name": "WSIA Ontario: waiving WSIB clearance is a hard block in construction",
+      "move": {
+        "clause_id": "compliance",
+        "move_type": "waive_wsib_clearance",
+        "target_text": "Customer waives the WSIB clearance certificate requirement for Contractor."
+      },
+      "context": {
+        "procurement_value_cad": 300000,
+        "buyer_type": "provincial-on",
+        "industry": "construction"
+      },
+      "expected_blocked": true,
+      "expected_rule_ids": ["wsia-on-clearance-cert"]
+    },
+    {
+      "name": "CASL: removing unsubscribe mechanism is a hard block",
+      "move": {
+        "clause_id": "marketing",
+        "move_type": "remove_cem_unsubscribe",
+        "target_text": "Marketing emails will be sent without unsubscribe link."
+      },
+      "context": {
+        "procurement_value_cad": 25000,
+        "buyer_type": "private",
+        "industry": "any"
+      },
+      "expected_blocked": true,
+      "expected_rule_ids": ["casl-6-cem-consent"]
+    }
+  ]
+}

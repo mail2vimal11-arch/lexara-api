@@ -1,0 +1,56 @@
+{
+  "rules": [
+    {
+      "id": "cfta-502-localpref",
+      "statute": "CFTA",
+      "jurisdiction": "CA",
+      "section": "Article 502",
+      "version_as_of": "2024-07-01",
+      "effective_date": "2024-07-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.cfta-alec.ca/canadian-free-trade-agreement/",
+      "applies_when": {
+        "procurement_value_gte_cad": 100000,
+        "buyer_types": ["federal", "provincial", "territorial", "municipal"]
+      },
+      "forbid": {
+        "move_types": ["add_local_preference", "swap_jurisdiction_to_canadian_only"],
+        "text_patterns": [
+          "(?i)\\bcanadian suppliers? only\\b",
+          "(?i)\\bmust be incorporated in (canada|the province of)\\b",
+          "(?i)\\b(provincial|territorial) (preference|set-aside)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "CFTA Art. 502 prohibits discrimination based on supplier's province or territory of origin in covered procurement above the threshold.",
+      "remediation_hint": "Replace origin-based criteria with origin-neutral evaluation (e.g. technical merit, prior performance, certifications)."
+    },
+    {
+      "id": "cfta-503-tech-spec-bias",
+      "statute": "CFTA",
+      "jurisdiction": "CA",
+      "section": "Article 503",
+      "version_as_of": "2024-07-01",
+      "effective_date": "2024-07-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.cfta-alec.ca/canadian-free-trade-agreement/",
+      "applies_when": {
+        "procurement_value_gte_cad": 100000,
+        "buyer_types": ["federal", "provincial", "territorial", "municipal"]
+      },
+      "forbid": {
+        "move_types": [],
+        "text_patterns": [
+          "(?i)\\bmust be (made by|manufactured by|sold by)\\s+[A-Z][\\w]*",
+          "(?i)\\b(brand name|trademark)\\s+[A-Z][\\w]*"
+        ],
+        "unless_text_contains": ["or equivalent"]
+      },
+      "severity": "hard_block",
+      "reason": "CFTA Art. 503 requires technical specifications be performance-based; brand-name references must be accompanied by 'or equivalent' wording.",
+      "remediation_hint": "Append 'or equivalent' to any brand reference, or restate the specification in performance / functional terms."
+    }
+  ]
+}

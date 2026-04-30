@@ -1,0 +1,27 @@
+{
+  "rules": [
+    {
+      "id": "bobi-2022-ontario-preference",
+      "statute": "BOBI-2022",
+      "jurisdiction": "CA-ON",
+      "section": "Building Ontario Businesses Initiative Act, 2022, S.O. 2022, c.16, Sched.3",
+      "version_as_of": "2023-04-01",
+      "effective_date": "2023-04-01",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://www.ontario.ca/laws/statute/22b16",
+      "applies_when": {
+        "procurement_value_lt_cad": 121200,
+        "buyer_types": ["provincial-on", "broader-public-sector-on"]
+      },
+      "forbid": {
+        "move_types": ["remove_ontario_preference_clause"],
+        "text_patterns": []
+      },
+      "severity": "soft_warn",
+      "reason": "BOBI 2022 directs Ontario public sector entities to give preference to Ontario businesses for procurement below the trade-agreement thresholds. Removing this clause may breach the Act for in-scope procurement.",
+      "remediation_hint": "Confirm the procurement falls below applicable trade-agreement thresholds (CFTA, CETA, CUSMA) before removing Ontario-preference language; above threshold, BOBI does not apply and CFTA Art. 502 governs.",
+      "notes": "DIRECT CONFLICT with cfta-502-localpref above CFTA threshold. Engine surfaces both — counsel determines which governs based on procurement value."
+    }
+  ]
+}

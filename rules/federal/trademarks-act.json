@@ -1,0 +1,25 @@
+{
+  "rules": [
+    {
+      "id": "trademarks-act-50-licence-control",
+      "statute": "Trademarks-Act",
+      "jurisdiction": "CA",
+      "section": "s.50",
+      "version_as_of": "2024-06-20",
+      "effective_date": "1993-06-09",
+      "last_reviewed": "2026-04-30",
+      "last_reviewed_by": "counsel:STUB-VERIFY",
+      "source_url": "https://laws-lois.justice.gc.ca/eng/acts/t-13/section-50.html",
+      "applies_when": {},
+      "forbid": {
+        "move_types": ["grant_trademark_licence_without_quality_control"],
+        "text_patterns": [
+          "(?i)\\blicen[cs]e(?:s|d)?\\s+to use\\b[^.]{0,300}\\bwithout\\s+(quality control|oversight|inspection)\\b"
+        ]
+      },
+      "severity": "hard_block",
+      "reason": "Trademarks Act s.50 requires the trademark owner to retain direct or indirect control over the character or quality of goods/services associated with the licensed mark. A licence without quality-control rights risks the mark being deemed abandoned for non-distinctiveness.",
+      "remediation_hint": "Add quality-control provisions: licensor right to inspect, approve specifications, and terminate for non-compliance with brand standards."
+    }
+  ]
+}
