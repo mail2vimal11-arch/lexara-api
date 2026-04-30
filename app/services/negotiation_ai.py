@@ -695,13 +695,7 @@ def calculate_round_dollar_value(clause_data: dict, action: str) -> float:
     -------
     float  — 0.0 if no value is attributable to this round
     """
+    from app.services.clause_weights import action_recovery
+
     risk_exposure = float(clause_data.get("risk_exposure_cad") or 0)
-
-    multipliers = {
-        "accept": 0.70,       # 70% of risk exposure is recovered on full acceptance
-        "counter": 0.30,      # partial movement
-        "reject": 0.0,        # no movement
-        "trade_offer": 0.0,   # value realised when the trade resolves
-    }
-
-    return round(risk_exposure * multipliers.get(action, 0.0), 2)
+    return round(risk_exposure * action_recovery(action), 2)

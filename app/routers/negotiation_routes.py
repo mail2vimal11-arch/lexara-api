@@ -33,6 +33,7 @@ from app.models.negotiation import (
 )
 from app.security import get_current_user
 from app.services.audit_service import log_action
+from app.services.clause_weights import classify_move, clause_weight
 
 logger = logging.getLogger(__name__)
 
@@ -176,6 +177,10 @@ def _serialise_clause(clause: NegotiationClause) -> dict:
 
 
 def _serialise_round(rnd: NegotiationRound) -> dict:
+    clause = getattr(rnd, "clause", None)
+    clause_type = getattr(clause, "clause_type", None) if clause else None
+    risk_severity = getattr(clause, "risk_severity", None) if clause else None
+
     return {
         "id": rnd.id,
         "clause_id": rnd.clause_id,
@@ -187,6 +192,8 @@ def _serialise_round(rnd: NegotiationRound) -> dict:
         "trade_offer": rnd.trade_offer,
         "dollar_value_cad": float(rnd.dollar_value_cad) if rnd.dollar_value_cad is not None else None,
         "ai_confidence": rnd.ai_confidence,
+        "move_quality": classify_move(rnd.action, rnd.ai_confidence, clause_type, risk_severity),
+        "clause_weight": clause_weight(clause_type),
         "created_at": rnd.created_at.isoformat() if rnd.created_at else None,
     }
 
