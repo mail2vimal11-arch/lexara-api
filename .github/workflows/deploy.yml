@@ -1,0 +1,40 @@
+name: Deploy to VPS
+
+# Auto-deploys main to the VPS once tests pass.
+# Manual run: Actions tab → "Deploy to VPS" → Run workflow.
+#
+# Required repo secrets:
+#   VPS_HOST     hostname or IP of the VPS
+#   VPS_USER     SSH user (typically root or a deploy user)
+#   VPS_SSH_KEY  private key matching an authorized_keys entry on the VPS
+# Optional:
+#   VPS_PORT     SSH port (defaults to 22)
+
+on:
+  workflow_run:
+    workflows: ["Tests & Deploy"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script_stop: true
+          script: |
+            cd /opt/lexara-api
+            bash scripts/deploy.sh
