@@ -274,9 +274,7 @@ function renderClauseRevisions(d) {
   </div>${resultFooter(d)}`;
 }
 
-function renderExtractClauses(d) {
-  return renderClauseRevisions(d);
-}
+// FE-018: renderExtractClauses was a dead alias for renderClauseRevisions — removed
 
 function resultFooter(d) {
   const parts = [];
@@ -359,11 +357,12 @@ document.querySelectorAll('.checkout-btn').forEach(btn => {
 
 function promptEmail(message) {
   return new Promise(resolve => {
+    // FE-021: modal gets role="dialog" + aria-modal + aria-labelledby for screen readers
     const overlay = document.createElement('div');
     overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;`;
     overlay.innerHTML = `
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;max-width:420px;width:90%;box-shadow:var(--shadow-lg)">
-        <h3 style="font-family:var(--font-display);font-size:1.25rem;color:var(--text-primary);margin-bottom:8px">Subscribe to LexAra</h3>
+      <div role="dialog" aria-modal="true" aria-labelledby="modal-title" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;max-width:420px;width:90%;box-shadow:var(--shadow-lg)">
+        <h3 id="modal-title" style="font-family:var(--font-display);font-size:1.25rem;color:var(--text-primary);margin-bottom:8px">Subscribe to LexAra</h3>
         <p style="font-size:.9375rem;color:var(--text-secondary);margin-bottom:20px">${escHtml(message)}</p>
         <label for="modal-email" style="font-size:.875rem;color:var(--text-secondary);display:block;margin-bottom:6px">Email address</label>
         <input id="modal-email" type="email" autocomplete="email" placeholder="your@email.com" style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:.9375rem;padding:10px 14px;margin-bottom:16px;box-sizing:border-box"/>

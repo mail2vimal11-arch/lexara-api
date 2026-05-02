@@ -221,13 +221,13 @@
       <button class="logout-btn" onclick="doLogout()">Sign Out</button>
     </div>
 
-    <!-- Tool tabs -->
+    <!-- Tool tabs — FE-020: emoji wrapped in aria-hidden -->
     <div class="pai-tabs">
-      <button class="pai-tab active" data-panel="analyze" onclick="switchPanel(this)">🔍 Analyze Clause</button>
-      <button class="pai-tab" data-panel="search"  onclick="switchPanel(this)">🧠 Clause Search</button>
-      <button class="pai-tab" data-panel="library" onclick="switchPanel(this)">📚 Clause Library</button>
-      <button class="pai-tab" data-panel="tenders" onclick="switchPanel(this)">📡 Live Tenders</button>
-      <button class="pai-tab" data-panel="compare" onclick="switchPanel(this)">⚖️ Compare</button>
+      <button class="pai-tab active" data-panel="analyze" onclick="switchPanel(this)"><span aria-hidden="true">🔍</span> Analyze Clause</button>
+      <button class="pai-tab" data-panel="search"  onclick="switchPanel(this)"><span aria-hidden="true">🧠</span> Clause Search</button>
+      <button class="pai-tab" data-panel="library" onclick="switchPanel(this)"><span aria-hidden="true">📚</span> Clause Library</button>
+      <button class="pai-tab" data-panel="tenders" onclick="switchPanel(this)"><span aria-hidden="true">📡</span> Live Tenders</button>
+      <button class="pai-tab" data-panel="compare" onclick="switchPanel(this)"><span aria-hidden="true">⚖️</span> Compare</button>
     </div>
 
     <!-- ═══════════════════════════════════════════════════ -->
@@ -356,7 +356,7 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <p>© 2025 LexAra. Built for Canadian legal professionals.</p>
+    <p>© 2026 LexAra. Built for Canadian legal professionals.</p>
   </div>
 </footer>
 
@@ -586,7 +586,7 @@ async function loadTenders() {
         <tbody>
           ${d.tenders.map(t => `<tr>
             <td><span class="source-badge">${esc(t.source)}</span></td>
-            <td><a href="${esc(t.source_url)}" target="_blank" style="color:var(--gold);text-decoration:none">${esc(t.title||"—").substring(0,80)}</a></td>
+            <td><a href="${esc(t.source_url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(t.title||'—').substring(0,80)} (opens in new tab)" style="color:var(--gold);text-decoration:none">${esc(t.title||"—").substring(0,80)}</a></td>
             <td>${esc(t.buyer||"—").substring(0,40)}</td>
             <td>${t.value ? `${t.currency} ${Number(t.value).toLocaleString()}` : "—"}</td>
             <td>${esc(t.country||"—")}</td>

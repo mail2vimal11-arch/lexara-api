@@ -193,9 +193,10 @@
     <p>Three precision tools for procurement officers and legal counsel — readability linting, McGill citation validation, and a searchable standard clause library. Fully deterministic, no AI credits consumed.</p>
 
     <div class="pt-tabs" role="tablist">
-      <button class="pt-tab-btn active" data-tool="linter" role="tab" aria-selected="true">📋 Readability Linter</button>
-      <button class="pt-tab-btn" data-tool="citations" role="tab" aria-selected="false">📖 Citation Validator</button>
-      <button class="pt-tab-btn" data-tool="clauses" role="tab" aria-selected="false">📚 Clause Library</button>
+      <!-- FE-020: emoji wrapped in aria-hidden so screen readers skip decorative icons -->
+      <button class="pt-tab-btn active" data-tool="linter" role="tab" aria-selected="true"><span aria-hidden="true">📋</span> Readability Linter</button>
+      <button class="pt-tab-btn" data-tool="citations" role="tab" aria-selected="false"><span aria-hidden="true">📖</span> Citation Validator</button>
+      <button class="pt-tab-btn" data-tool="clauses" role="tab" aria-selected="false"><span aria-hidden="true">📚</span> Clause Library</button>
     </div>
   </div>
 </div>
@@ -324,7 +325,7 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <p>© 2025 LexAra. Built for Canadian legal professionals.</p>
+    <p>© 2026 LexAra. Built for Canadian legal professionals.</p>
     <p style="color:var(--text-muted); font-size:0.75rem; margin-top:4px;">
       Procurement Tools use deterministic analysis only. Not legal advice.
     </p>
