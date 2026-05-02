@@ -4,7 +4,6 @@
    ============================================================ */
 
 const API_BASE = 'https://api.lexara.tech/v1';
-const API_KEY  = 'Bearer demo-api-key-lexara';
 
 /* ── Nav toggle (mobile) ───────────────────────────────────── */
 const navToggle = document.querySelector('.nav-toggle');
@@ -115,7 +114,7 @@ async function runAnalysis(tab, payload) {
   try {
     const res = await fetch(`${API_BASE}/${tab}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': API_KEY },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('pai_token') || ''}` },
       body:    JSON.stringify(payload),
     });
 
@@ -338,7 +337,7 @@ document.querySelectorAll('.checkout-btn').forEach(btn => {
     try {
       const res = await fetch(`${API_BASE}/checkout`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': API_KEY },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('pai_token') || ''}` },
         body: JSON.stringify({ plan_id: plan, email }),
       });
 
@@ -459,7 +458,7 @@ async function handleFileUpload(file) {
   try {
     const res = await fetch(`${API_BASE}/upload`, {
       method: 'POST',
-      headers: { 'Authorization': API_KEY },
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('pai_token') || ''}` },
       body: formData,
     });
 
@@ -516,8 +515,6 @@ if (textarea) {
 /* ============================================================
    Auth — show/hide demo based on token; update nav state
    ============================================================ */
-
-const GATE_API = 'https://api.lexara.tech/v1';
 
 function switchAuthTab(tab) {
   // legacy — kept for any inline calls

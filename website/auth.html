@@ -195,16 +195,23 @@ async function doRegister() {
     msg.textContent = "✓ Account created — signing you in…";
     // Auto-login
     setTimeout(async () => {
-      const res2 = await fetch(`${API}/auth/login`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-      const d2 = await res2.json();
-      localStorage.setItem("pai_token", d2.access_token);
-      localStorage.setItem("pai_role",  d2.role);
-      localStorage.setItem("pai_user",  username);
-      const redirect = new URLSearchParams(window.location.search).get("next") || "/#demo";
-      window.location.href = redirect;
+      try {
+        const res2 = await fetch(`${API}/auth/login`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        if (!res2.ok) throw new Error("Auto-login failed");
+        const d2 = await res2.json();
+        localStorage.setItem("pai_token", d2.access_token);
+        localStorage.setItem("pai_role",  d2.role);
+        localStorage.setItem("pai_user",  username);
+        const redirect = new URLSearchParams(window.location.search).get("next") || "/#demo";
+        window.location.href = redirect;
+      } catch(_) {
+        msg.className = "auth-msg success";
+        msg.textContent = "Account created! Please sign in manually.";
+        switchTab("login");
+      }
     }, 800);
   } catch(e) {
     msg.className = "auth-msg error";

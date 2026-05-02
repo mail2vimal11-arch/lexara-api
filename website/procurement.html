@@ -338,7 +338,6 @@
    ============================================================ */
 
 const API_BASE = 'https://api.lexara.tech/v1/procurement';
-const API_KEY  = 'Bearer demo-api-key-lexara';
 
 /* ── Tab switching ─────────────────────────────────────────── */
 const tabBtns = document.querySelectorAll('.pt-tab-btn');
@@ -404,7 +403,7 @@ async function runLinter() {
   try {
     const res = await fetch(`${API_BASE}/lint`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': API_KEY },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('pai_token') || ''}` },
       body: JSON.stringify({ text }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -481,7 +480,7 @@ async function runCitations() {
   try {
     const res = await fetch(`${API_BASE}/citations`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': API_KEY },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('pai_token') || ''}` },
       body: JSON.stringify({ text }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -559,7 +558,7 @@ async function runClauseSearch() {
   try {
     const res = await fetch(`${API_BASE}/clauses`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': API_KEY },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('pai_token') || ''}` },
       body: JSON.stringify({ query, category: category || null }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

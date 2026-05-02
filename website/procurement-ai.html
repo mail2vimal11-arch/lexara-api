@@ -169,8 +169,14 @@
       <!-- Login -->
       <div id="auth-login">
         <div class="auth-form">
-          <input type="text" id="login-username" placeholder="Username" />
-          <input type="password" id="login-password" placeholder="Password" />
+          <div>
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" placeholder="Username" autocomplete="username" />
+          </div>
+          <div>
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" />
+          </div>
           <button class="auth-submit" onclick="doLogin()">Sign In</button>
           <div id="login-msg"></div>
         </div>
@@ -179,13 +185,25 @@
       <!-- Register -->
       <div id="auth-register" style="display:none">
         <div class="auth-form">
-          <input type="text" id="reg-username" placeholder="Username" />
-          <input type="email" id="reg-email" placeholder="Email" />
-          <input type="password" id="reg-password" placeholder="Password" />
-          <select id="reg-role">
-            <option value="procurement">Procurement Officer</option>
-            <option value="legal">Legal Counsel</option>
-          </select>
+          <div>
+            <label for="reg-username">Username</label>
+            <input type="text" id="reg-username" placeholder="Username" autocomplete="username" />
+          </div>
+          <div>
+            <label for="reg-email">Email address</label>
+            <input type="email" id="reg-email" placeholder="Email" autocomplete="email" />
+          </div>
+          <div>
+            <label for="reg-password">Password</label>
+            <input type="password" id="reg-password" placeholder="Password" autocomplete="new-password" />
+          </div>
+          <div>
+            <label for="reg-role">I am a…</label>
+            <select id="reg-role">
+              <option value="procurement">Procurement Officer</option>
+              <option value="legal">Legal Counsel</option>
+            </select>
+          </div>
           <button class="auth-submit" onclick="doRegister()">Create Account</button>
           <div id="reg-msg"></div>
         </div>
@@ -588,6 +606,7 @@ async function triggerIngestion() {
     const res = await fetch(`${API}/procurement/ingestion/run`, {
       method: "POST", headers: authHeaders(), body: JSON.stringify({ query: "procurement" }),
     });
+    if (!res.ok) throw new Error(`Ingestion failed (HTTP ${res.status})`);
     const d = await res.json();
     setStatus("tender-status", `<span class="pai-success">✓ Done — ${d.new} new tenders, ${d.clauses_learned} clauses learned.</span>`);
     loadTenders();
