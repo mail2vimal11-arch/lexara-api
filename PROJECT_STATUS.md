@@ -1,5 +1,5 @@
 # PROJECT_STATUS.md
-_Single source of truth for parallel sessions. Updated 2026-05-02._
+_Single source of truth for parallel sessions. Updated 2026-05-02. All 4 waves complete._
 
 ---
 
@@ -134,29 +134,52 @@ _Prevents two sessions editing the same file simultaneously._
 
 ## Task Board
 
-### ✅ Done
+### ✅ Done — All waves complete
 
-| Task | Session | Commit/Date |
+| Task | Issues | Commit |
 |---|---|---|
 | Multi-LLM waterfall (Groq → SaulLM → Claude) | — | `832dff3`, `36aa414` |
 | Security hardening (auth bypass fix, model ID) | — | `25fdee4`, `17b07cf` |
-| Automated deploy via GitHub Actions SSH | PM | 2026-05-02 |
-| HF warmer interval 240s → 600s | PM | 2026-05-02 |
-| 429 retry in `hf_llm_service.py` | PM | 2026-05-02 |
-| Model attribution fix (`response.model` field) | PM | 2026-05-02 |
-| CLAUDE.md, settings.json, skills, agents installed | PM | 2026-05-02 |
-| Full frontend audit | Frontend Agent | 2026-05-02 |
-| Full backend code audit | Code Reviewer Agent | 2026-05-02 |
-| All issues logged to ISSUES.md | PM | 2026-05-02 |
+| Automated deploy via GitHub Actions SSH | CA-007 | `b95faad` |
+| Remove `\|\| true` from CI gate | CA-007 | `b95faad` |
+| HF 429 retry + model ID fix | — | `b95faad` |
+| Fix unbound `content` variable in LLM services | CA-006, CA-027 | `a4edf2f` |
+| Merge dual User models + fix timedelta + move billing models | CA-001, CA-002, CA-018 | `de6b0a2` |
+| Frontend P0+P1: demo key, nginx, CSS, labels, accessibility | FE-001–FE-012 | `61f3b47` |
+| Governance: CLAUDE.md, PROJECT_STATUS.md, ISSUES.md, settings.json, skills | — | `61f3b47` |
+| Billing auth + real Stripe webhook handlers | CA-003, CA-004 | `db676ad` |
+| Real usage quota from DB | CA-005 | `db676ad` |
+| Suspended account gate in get_current_user | CA-009 | `db676ad` |
+| success_url separator fix | CA-019 | `db676ad` |
+| Remove N+1 flushes from ingestion loop | CA-011 | `e5dd387` |
+| Batch FAISS clause search DB queries | CA-012 | `e5dd387` |
+| Isolate audit commit from business operation | CA-013 | `e5dd387` |
+| Surface real 500s in TestClient | CA-015 | `e5dd387` |
 
 ### 🔄 In Progress
-_None. Awaiting Wave 0 assignment._
+_None._
 
-### 📋 Queue (in wave order)
-1. Wave 0 → CA-007 (Session-A)
-2. Wave 1 → CA-001+CA-002+CA-018 (Session-B) ∥ CA-006+CA-027 (Session-C)
-3. Wave 2 → CA-003+CA-004+CA-005+CA-009 (Session-B) ∥ FE-001–FE-012 (Session-D)
-4. Wave 3 → quality pass (all sessions)
+### 📋 Remaining open issues (non-blocking P1/P2/P3)
+
+| Issue | Title | Priority |
+|---|---|---|
+| CA-008 | Middleware checks Bearer prefix only — JWT never validated at middleware layer | P1 |
+| CA-010 | `asyncio.sleep(60)` holds DB connection during HF cold-start | P1 |
+| CA-014 | 5 required config fields crash app at import if missing | P1 |
+| CA-016 | key_risks/missing_clauses normalization copy-pasted between LLM services | P2 |
+| CA-017 | `db=Depends(get_db)` injected but never used in contracts.py | P2 |
+| CA-020 | hf-warmer uses `latest` floating tag, runs as root | P2 |
+| CA-021 | Sentence Transformers model downloaded at build with no hash check | P2 |
+| CA-022 | Version hardcoded in health.py instead of settings.version | P2 |
+| CA-023 | Hardcoded prod URLs in billing defaults | P2 |
+| CA-024 | Startup errors swallowed — app starts degraded with no alert | P2 |
+| CA-025 | MOCK_EXTRACT_CLAUSES_RESPONSE uses wrong schema fields | P3 |
+| CA-026 | `register` endpoint is sync while all others are async | P3 |
+| CA-028–030 | Minor code style / nitpick items | P3 |
+| FE-011 | No favicon or OG meta tags | P2 |
+| FE-013 | No gzip/Cache-Control in nginx | P2 |
+| FE-014 | CTA email form is a silent no-op | P2 |
+| FE-015–FE-022 | Frontend P2/P3 polish | P2/P3 |
 
 ---
 
