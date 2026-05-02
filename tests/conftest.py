@@ -177,7 +177,7 @@ def setup_database():
 
 @pytest.fixture(scope="session")
 def client():
-    with TestClient(app, raise_server_exceptions=False) as c:
+    with TestClient(app) as c:  # CA-015: raise_server_exceptions=True (default) — 500s now surface in tests
         yield c
 
 

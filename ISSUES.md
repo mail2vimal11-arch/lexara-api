@@ -36,11 +36,11 @@ _Sources: Code Audit (2026-05-02) · Frontend Audit (2026-05-02)_
 | CA-008 | `app/middleware/auth.py:41–48` | Middleware checks Bearer prefix only — JWT never validated at middleware layer | — | — | OPEN | |
 | CA-009 | `app/security.py:50–65` | `get_current_user` is sync; no `is_active` check — suspended accounts can re-authenticate | — | CA-002 | RESOLVED | Made `async def`; added `if not user.is_active: raise HTTPException(403)` |
 | CA-010 | `app/services/hf_llm_service.py:130–135` | `asyncio.sleep(60)` holds open DB connection during HF cold-start — can exhaust pool | — | — | OPEN | |
-| CA-011 | `app/ingestion/pipeline.py:92–96` | N+1 DB flushes in ingestion loop — degrades linearly with tender volume | — | — | OPEN | |
-| CA-012 | `app/routers/procurement_clause_routes.py:66–80` | N+1 SELECT per FAISS result in clause search | — | — | OPEN | |
-| CA-013 | `app/services/audit_service.py:34` | Each audit write has its own `db.commit()` — audit failure rolls back business operation | — | — | OPEN | |
+| CA-011 | `app/ingestion/pipeline.py:92–96` | N+1 DB flushes in ingestion loop — degrades linearly with tender volume | — | — | RESOLVED | Removed per-item `db.flush()` — `Tender.id` is Python-generated UUID so flush is unnecessary; single `db.commit()` at end persists all rows |
+| CA-012 | `app/routers/procurement_clause_routes.py:66–80` | N+1 SELECT per FAISS result in clause search | — | — | RESOLVED | Replaced loop with single `db.query(SOWClause).filter(SOWClause.clause_id.in_(ids))` batch fetch |
+| CA-013 | `app/services/audit_service.py:34` | Each audit write has its own `db.commit()` — audit failure rolls back business operation | — | — | RESOLVED | Wrapped `db.add + db.commit` in try/except; failure logs warning + rolls back audit entry only, business data unaffected |
 | CA-014 | `app/config.py:26–30` | 5 required fields crash app at import if missing; `receipts_api_key` is dead config never used | — | — | OPEN | |
-| CA-015 | `tests/conftest.py:180` | `raise_server_exceptions=False` swallows real 500s — test failures are opaque | — | — | OPEN | |
+| CA-015 | `tests/conftest.py:180` | `raise_server_exceptions=False` swallows real 500s — test failures are opaque | — | — | RESOLVED | Removed flag; `TestClient` now uses default `raise_server_exceptions=True` |
 
 ### P2 — Should Fix
 

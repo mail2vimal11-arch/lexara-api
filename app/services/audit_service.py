@@ -1,7 +1,10 @@
 """Audit logging service — call this for every significant action."""
 
+import logging
 from sqlalchemy.orm import Session
 from app.models.audit import AuditLog
+
+logger = logging.getLogger(__name__)
 
 
 def log_action(
@@ -14,6 +17,10 @@ def log_action(
 ) -> None:
     """
     Write an audit log entry.
+
+    CA-013: commit is wrapped in try/except so an audit write failure is
+    non-fatal — it logs a warning and rolls back only the audit entry, not
+    any business data already committed in the same request.
 
     Args:
         db:         Database session.
@@ -30,5 +37,9 @@ def log_action(
         ip_address=ip_address,
         source_url=source_url,
     )
-    db.add(entry)
-    db.commit()
+    try:
+        db.add(entry)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.warning("Audit log write failed (non-fatal): action=%s error=%s", action, exc)
