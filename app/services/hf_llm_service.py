@@ -137,6 +137,15 @@ async def analyze_with_huggingface(
                     logger.warning("HuggingFace still loading after retry, falling back to Claude")
                     raise Exception("Model loading")
 
+            if response.status_code == 429:
+                retry_after = int(response.headers.get("Retry-After", 20))
+                wait = min(retry_after, 30)
+                logger.warning(f"HuggingFace rate limited, retrying in {wait}s")
+                await asyncio.sleep(wait)
+                response = await client.post(url, headers=headers, json=payload)
+                if response.status_code == 429:
+                    raise Exception("HuggingFace rate limited after retry")
+
             if response.status_code != 200:
                 logger.error(f"HuggingFace API error: {response.status_code} — {response.text}")
                 raise Exception(f"HuggingFace API error: {response.status_code}")
@@ -162,7 +171,7 @@ async def analyze_with_huggingface(
 
             analysis = json.loads(content)
             analysis["tokens_used"] = 0  # HF free tier doesn't report tokens
-            analysis["model"] = "lexara-legal-saullm"
+            analysis["model"] = settings.hf_model_id
             return analysis
 
     except json.JSONDecodeError as e:
