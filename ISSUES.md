@@ -23,9 +23,9 @@ _Sources: Code Audit (2026-05-02) · Frontend Audit (2026-05-02)_
 |---|---|---|---|---|---|
 | CA-001 | `app/database/models.py:63` | `timedelta` not imported — every Analysis INSERT crashes at runtime | CA-018 | RESOLVED | Fixed in `app/models/billing.py` — commit de6b0a2 |
 | CA-002 | `app/database/models.py` + `app/models/user.py` | Two competing `User` ORM classes mapped to same `users` table — mapper collision, billing columns inaccessible | CA-003, CA-004, CA-005, CA-009, CA-018 | RESOLVED | Unified model in `app/models/user.py` with all auth + billing columns — commit de6b0a2. Prod migration SQL in commit message. |
-| CA-003 | `app/routers/billing.py:55–58,68–69` | `/v1/plans` and `/v1/checkout` are unauthenticated — any caller can create Stripe sessions | CA-004 | OPEN | |
-| CA-004 | `app/routers/billing.py:165–194` | All four Stripe webhook handlers are no-ops — paying users never upgraded in DB | — | OPEN | |
-| CA-005 | `app/routers/usage.py:31–42` | `/v1/usage` returns hardcoded fake data — quota enforcement impossible | — | OPEN | |
+| CA-003 | `app/routers/billing.py:55–58,68–69` | `/v1/plans` and `/v1/checkout` are unauthenticated — any caller can create Stripe sessions | CA-004 | RESOLVED | `/v1/checkout` now requires `get_current_user`; user email derived from JWT, not request body |
+| CA-004 | `app/routers/billing.py:165–194` | All four Stripe webhook handlers are no-ops — paying users never upgraded in DB | — | RESOLVED | All 4 handlers now perform real DB upserts via `db.query(User)` + `db.commit()`; `db=Depends(get_db)` added to webhook endpoint |
+| CA-005 | `app/routers/usage.py:31–42` | `/v1/usage` returns hardcoded fake data — quota enforcement impossible | — | RESOLVED | Real `func.count(Analysis.id)` query for current month; plan limits from `PLANS` dict; remaining quota computed |
 | CA-006 | `app/services/llm_service.py:142` | `content` variable may be unbound in `except json.JSONDecodeError` — masks real errors as `UnboundLocalError` | — | RESOLVED | `content = ""` initialised before try block — commit a4edf2f |
 | CA-007 | `.github/workflows/tests.yml:43` | `pytest \|\| true` makes CI gate toothless — broken code ships undetected | ALL | RESOLVED | Removed `\|\| true` from pytest step 2026-05-02 |
 
@@ -34,7 +34,7 @@ _Sources: Code Audit (2026-05-02) · Frontend Audit (2026-05-02)_
 | ID | Location | Title | Blocks | Blocked By | Status | Resolution |
 |---|---|---|---|---|---|---|
 | CA-008 | `app/middleware/auth.py:41–48` | Middleware checks Bearer prefix only — JWT never validated at middleware layer | — | — | OPEN | |
-| CA-009 | `app/security.py:50–65` | `get_current_user` is sync; no `is_active` check — suspended accounts can re-authenticate | — | CA-002 | OPEN | |
+| CA-009 | `app/security.py:50–65` | `get_current_user` is sync; no `is_active` check — suspended accounts can re-authenticate | — | CA-002 | RESOLVED | Made `async def`; added `if not user.is_active: raise HTTPException(403)` |
 | CA-010 | `app/services/hf_llm_service.py:130–135` | `asyncio.sleep(60)` holds open DB connection during HF cold-start — can exhaust pool | — | — | OPEN | |
 | CA-011 | `app/ingestion/pipeline.py:92–96` | N+1 DB flushes in ingestion loop — degrades linearly with tender volume | — | — | OPEN | |
 | CA-012 | `app/routers/procurement_clause_routes.py:66–80` | N+1 SELECT per FAISS result in clause search | — | — | OPEN | |
@@ -49,7 +49,7 @@ _Sources: Code Audit (2026-05-02) · Frontend Audit (2026-05-02)_
 | CA-016 | `llm_service.py` + `groq_llm_service.py` | `key_risks`/`missing_clauses` normalization copy-pasted verbatim — already drifting | OPEN | |
 | CA-017 | `app/routers/contracts.py` | `db=Depends(get_db)` injected but never used — wastes connection pool slots | OPEN | |
 | CA-018 | `app/database/models.py` | `Analysis`, `APIKey`, `UsageLog`, `BillingEvent` models are dead — never imported, tables never created | RESOLVED | Moved to `app/models/billing.py`, imported in `main.py` and `conftest.py` — commit de6b0a2 |
-| CA-019 | `app/routers/billing.py:86` | `success_url + "&session_id=..."` produces invalid URL when no `?` present | OPEN | |
+| CA-019 | `app/routers/billing.py:86` | `success_url + "&session_id=..."` produces invalid URL when no `?` present | RESOLVED | Separator now chosen dynamically: `"&" if "?" in url else "?"` |
 | CA-020 | `docker-compose.yml:56–72` | `hf-warmer` uses `latest` floating tag, runs as root, no resource limits | OPEN | |
 | CA-021 | `Dockerfile:9` | Sentence Transformers model downloaded at build with no integrity/hash check | OPEN | |
 | CA-022 | `app/routers/health.py:15` | Version hardcoded as `"1.0.0"` instead of `settings.version` | OPEN | |

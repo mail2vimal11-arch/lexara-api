@@ -2,14 +2,15 @@
 
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional
 import stripe
 import logging
-import json
 
 from app.config import settings
 from app.database.session import get_db
+from app.models.user import User
+from app.models.billing import BillingEvent
 from app.security import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -60,16 +61,20 @@ async def list_plans():
 
 class CheckoutRequest(BaseModel):
     plan_id: str
-    email: EmailStr
-    success_url: Optional[str] = "https://lexara.tech?checkout=success"
-    cancel_url: Optional[str] = "https://lexara.tech?checkout=cancelled"
+    success_url: Optional[str] = None  # defaults to settings.frontend_url
+    cancel_url: Optional[str] = None
 
 
 @router.post("/checkout")
-async def create_checkout(request: CheckoutRequest):
+async def create_checkout(
+    request: CheckoutRequest,
+    current_user=Depends(get_current_user),
+):
     """
-    Create a Stripe Checkout session for a given plan.
-    Returns a checkout URL to redirect the user to.
+    Create a Stripe Checkout session for the authenticated user.
+
+    CA-003: requires auth — unauthenticated callers cannot create Stripe sessions.
+    CA-019: success_url separator is now ? or & depending on whether URL has query params.
     """
     plan = PLANS.get(request.plan_id)
     if not plan:
@@ -77,17 +82,26 @@ async def create_checkout(request: CheckoutRequest):
     if plan["price_id"] is None:
         raise HTTPException(status_code=400, detail="Free plan does not require checkout")
 
+    # Use authenticated user's email — prevents email impersonation
+    email = current_user.email
+
+    # CA-019: append session_id with correct separator
+    base_success = request.success_url or "https://lexara.tech?checkout=success"
+    sep = "&" if "?" in base_success else "?"
+    success_url = f"{base_success}{sep}session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = request.cancel_url or "https://lexara.tech?checkout=cancelled"
+
     try:
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             mode="subscription",
-            customer_email=request.email,
+            customer_email=email,
             line_items=[{"price": plan["price_id"], "quantity": 1}],
-            success_url=request.success_url + "&session_id={CHECKOUT_SESSION_ID}",
-            cancel_url=request.cancel_url,
-            metadata={"plan_id": request.plan_id, "email": request.email},
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={"plan_id": request.plan_id, "user_id": current_user.id, "email": email},
             subscription_data={
-                "metadata": {"plan_id": request.plan_id, "email": request.email}
+                "metadata": {"plan_id": request.plan_id, "user_id": current_user.id}
             },
             allow_promotion_codes=True,
             billing_address_collection="auto",
@@ -120,11 +134,13 @@ async def create_portal(current_user=Depends(get_current_user)):
 
 @router.post("/webhooks/stripe")
 @router.post("/webhook")
-async def stripe_webhook(request: Request):
+async def stripe_webhook(request: Request, db=Depends(get_db)):
     """
     Stripe webhook handler.
     Handles: checkout.session.completed, customer.subscription.updated,
              customer.subscription.deleted, invoice.payment_failed
+
+    CA-004: all four handlers now perform real DB updates.
     """
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature", "")
@@ -146,49 +162,112 @@ async def stripe_webhook(request: Request):
     logger.info(f"Stripe webhook received: {event_type}")
 
     if event_type == "checkout.session.completed":
-        await _handle_checkout_completed(data)
+        await _handle_checkout_completed(data, db)
 
     elif event_type in ("customer.subscription.updated", "customer.subscription.created"):
-        await _handle_subscription_updated(data)
+        await _handle_subscription_updated(data, db)
 
     elif event_type == "customer.subscription.deleted":
-        await _handle_subscription_cancelled(data)
+        await _handle_subscription_cancelled(data, db)
 
     elif event_type == "invoice.payment_failed":
-        await _handle_payment_failed(data)
+        await _handle_payment_failed(data, db)
 
     return JSONResponse({"received": True})
 
 
 # ── Webhook handlers ──────────────────────────────────────────
 
-async def _handle_checkout_completed(session):
-    email    = session.get("customer_email") or session.get("metadata", {}).get("email")
-    plan_id  = session.get("metadata", {}).get("plan_id", "starter")
-    cust_id  = session.get("customer")
+async def _handle_checkout_completed(session, db):
+    """Upgrade user's plan after successful Stripe Checkout. CA-004."""
+    email   = session.get("customer_email") or session.get("metadata", {}).get("email")
+    plan_id = session.get("metadata", {}).get("plan_id", "starter")
+    cust_id = session.get("customer")
 
-    logger.info(f"Checkout completed: email={email} plan={plan_id} customer={cust_id}")
-    # TODO: upsert User in DB — set plan_id and stripe_customer_id
-    # For now just log; DB integration goes here once auth is built
+    if not email:
+        logger.error("checkout.session.completed: no email in session, skipping")
+        return
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        logger.warning(f"checkout.session.completed: no user found for email={email}")
+        return
+
+    user.plan_id = plan_id
+    if cust_id:
+        user.stripe_customer_id = cust_id
+    db.commit()
+    logger.info(f"Upgraded user {email} to plan={plan_id} stripe_customer={cust_id}")
 
 
-async def _handle_subscription_updated(subscription):
-    cust_id   = subscription.get("customer")
-    status    = subscription.get("status")
-    plan_id   = subscription.get("metadata", {}).get("plan_id", "starter")
-
-    logger.info(f"Subscription updated: customer={cust_id} plan={plan_id} status={status}")
-    # TODO: update User.plan_id in DB
-
-
-async def _handle_subscription_cancelled(subscription):
+async def _handle_subscription_updated(subscription, db):
+    """Sync plan when Stripe subscription changes. CA-004."""
     cust_id = subscription.get("customer")
-    logger.info(f"Subscription cancelled: customer={cust_id} — downgrading to free")
-    # TODO: set User.plan_id = "free" in DB
+    status  = subscription.get("status")
+    plan_id = subscription.get("metadata", {}).get("plan_id")
+
+    if not cust_id:
+        logger.error("subscription.updated: missing customer id, skipping")
+        return
+
+    user = db.query(User).filter(User.stripe_customer_id == cust_id).first()
+    if not user:
+        logger.warning(f"subscription.updated: no user for customer={cust_id}")
+        return
+
+    # Only apply plan change when subscription is live
+    if status in ("active", "trialing") and plan_id and plan_id in PLANS:
+        user.plan_id = plan_id
+        db.commit()
+        logger.info(f"Updated user {user.email} plan={plan_id} status={status}")
+    else:
+        logger.info(f"subscription.updated: no plan change applied (status={status}, plan={plan_id})")
 
 
-async def _handle_payment_failed(invoice):
+async def _handle_subscription_cancelled(subscription, db):
+    """Downgrade user to free plan when subscription is cancelled. CA-004."""
+    cust_id = subscription.get("customer")
+
+    if not cust_id:
+        logger.error("subscription.deleted: missing customer id, skipping")
+        return
+
+    user = db.query(User).filter(User.stripe_customer_id == cust_id).first()
+    if not user:
+        logger.warning(f"subscription.deleted: no user for customer={cust_id}")
+        return
+
+    user.plan_id = "free"
+    db.commit()
+    logger.info(f"Downgraded user {user.email} to free (subscription cancelled)")
+
+
+async def _handle_payment_failed(invoice, db):
+    """Log payment failure as a BillingEvent. CA-004.
+
+    We log the failure but do not immediately downgrade the account —
+    Stripe's built-in dunning (Smart Retries) handles retries and sends
+    the subscription.deleted event if all retries fail.
+    """
     cust_id = invoice.get("customer")
     amount  = invoice.get("amount_due", 0)
-    logger.warning(f"Payment failed: customer={cust_id} amount={amount}")
-    # TODO: send dunning email, flag account
+
+    logger.warning(f"Payment failed: customer={cust_id} amount_due={amount}")
+
+    if not cust_id:
+        return
+
+    user = db.query(User).filter(User.stripe_customer_id == cust_id).first()
+    if not user:
+        logger.warning(f"invoice.payment_failed: no user for customer={cust_id}")
+        return
+
+    event = BillingEvent(
+        user_id=user.id,
+        event_type="payment_failed",
+        amount_cents=amount,
+        stripe_invoice_id=invoice.get("id"),
+    )
+    db.add(event)
+    db.commit()
+    logger.info(f"Logged payment_failed BillingEvent for user {user.email}")
