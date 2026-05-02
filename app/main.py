@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
         init_db()
         # Create procurement AI tables
         from app.database.session import Base, engine
-        from app.models import user, tender, clause, audit  # noqa: F401
+        from app.models import user, tender, clause, audit, billing  # noqa: F401
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Database initialized")
 

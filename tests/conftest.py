@@ -169,7 +169,7 @@ SAMPLE_CLAUSE_TEXT = (
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
     """Create all tables once before tests, drop after."""
-    from app.models import user, clause, tender, audit  # noqa: F401
+    from app.models import user, clause, tender, audit, billing  # noqa: F401
     Base.metadata.create_all(bind=app_engine)
     yield
     Base.metadata.drop_all(bind=app_engine)
