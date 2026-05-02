@@ -107,7 +107,7 @@ def library(
     if jurisdiction:
         q = q.filter(SOWClause.jurisdiction == jurisdiction)
     if standard_only:
-        q = q.filter(SOWClause.is_standard == True)  # noqa
+        q = q.filter(SOWClause.is_standard.is_(True))  # CA-028: use .is_(True) not == True
     clauses = q.order_by(SOWClause.is_standard.desc(), SOWClause.created_at.desc()).limit(100).all()
 
     return {

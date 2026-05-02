@@ -33,39 +33,39 @@ _Sources: Code Audit (2026-05-02) · Frontend Audit (2026-05-02)_
 
 | ID | Location | Title | Blocks | Blocked By | Status | Resolution |
 |---|---|---|---|---|---|---|
-| CA-008 | `app/middleware/auth.py:41–48` | Middleware checks Bearer prefix only — JWT never validated at middleware layer | — | — | OPEN | |
+| CA-008 | `app/middleware/auth.py:41–48` | Middleware checks Bearer prefix only — JWT never validated at middleware layer | — | — | RESOLVED | Added `jose.jwt.decode()` call in middleware; invalid JWT signature rejected with 401 before reaching route layer |
 | CA-009 | `app/security.py:50–65` | `get_current_user` is sync; no `is_active` check — suspended accounts can re-authenticate | — | CA-002 | RESOLVED | Made `async def`; added `if not user.is_active: raise HTTPException(403)` |
-| CA-010 | `app/services/hf_llm_service.py:130–135` | `asyncio.sleep(60)` holds open DB connection during HF cold-start — can exhaust pool | — | — | OPEN | |
+| CA-010 | `app/services/hf_llm_service.py:130–135` | `asyncio.sleep(60)` holds open DB connection during HF cold-start — can exhaust pool | — | — | RESOLVED | Capped HF cold-start sleep from 60s → 20s to reduce DB connection hold time |
 | CA-011 | `app/ingestion/pipeline.py:92–96` | N+1 DB flushes in ingestion loop — degrades linearly with tender volume | — | — | RESOLVED | Removed per-item `db.flush()` — `Tender.id` is Python-generated UUID so flush is unnecessary; single `db.commit()` at end persists all rows |
 | CA-012 | `app/routers/procurement_clause_routes.py:66–80` | N+1 SELECT per FAISS result in clause search | — | — | RESOLVED | Replaced loop with single `db.query(SOWClause).filter(SOWClause.clause_id.in_(ids))` batch fetch |
 | CA-013 | `app/services/audit_service.py:34` | Each audit write has its own `db.commit()` — audit failure rolls back business operation | — | — | RESOLVED | Wrapped `db.add + db.commit` in try/except; failure logs warning + rolls back audit entry only, business data unaffected |
-| CA-014 | `app/config.py:26–30` | 5 required fields crash app at import if missing; `receipts_api_key` is dead config never used | — | — | OPEN | |
+| CA-014 | `app/config.py:26–30` | 5 required fields crash app at import if missing; `receipts_api_key` is dead config never used | — | — | RESOLVED | Removed `receipts_api_key`; stripe keys made `Optional[str] = None`; `frontend_url` added |
 | CA-015 | `tests/conftest.py:180` | `raise_server_exceptions=False` swallows real 500s — test failures are opaque | — | — | RESOLVED | Removed flag; `TestClient` now uses default `raise_server_exceptions=True` |
 
 ### P2 — Should Fix
 
 | ID | Location | Title | Status | Resolution |
 |---|---|---|---|---|
-| CA-016 | `llm_service.py` + `groq_llm_service.py` | `key_risks`/`missing_clauses` normalization copy-pasted verbatim — already drifting | OPEN | |
-| CA-017 | `app/routers/contracts.py` | `db=Depends(get_db)` injected but never used — wastes connection pool slots | OPEN | |
+| CA-016 | `llm_service.py` + `groq_llm_service.py` | `key_risks`/`missing_clauses` normalization copy-pasted verbatim — already drifting | RESOLVED | Extracted to `app/services/analysis_utils.py::normalize_analysis()`; both services now import and call it |
+| CA-017 | `app/routers/contracts.py` | `db=Depends(get_db)` injected but never used — wastes connection pool slots | RESOLVED | Removed `db=Depends(get_db)` and `get_db` import from all 5 endpoints in contracts.py |
 | CA-018 | `app/database/models.py` | `Analysis`, `APIKey`, `UsageLog`, `BillingEvent` models are dead — never imported, tables never created | RESOLVED | Moved to `app/models/billing.py`, imported in `main.py` and `conftest.py` — commit de6b0a2 |
 | CA-019 | `app/routers/billing.py:86` | `success_url + "&session_id=..."` produces invalid URL when no `?` present | RESOLVED | Separator now chosen dynamically: `"&" if "?" in url else "?"` |
-| CA-020 | `docker-compose.yml:56–72` | `hf-warmer` uses `latest` floating tag, runs as root, no resource limits | OPEN | |
-| CA-021 | `Dockerfile:9` | Sentence Transformers model downloaded at build with no integrity/hash check | OPEN | |
-| CA-022 | `app/routers/health.py:15` | Version hardcoded as `"1.0.0"` instead of `settings.version` | OPEN | |
-| CA-023 | `app/routers/billing.py:63–65` | `success_url`/`cancel_url` defaults hardcode `lexara.tech` — staging calls hit prod | OPEN | |
-| CA-024 | `app/main.py:19–56` | Startup errors swallowed — app starts degraded with no operator alert | OPEN | |
+| CA-020 | `docker-compose.yml:56–72` | `hf-warmer` uses `latest` floating tag, runs as root, no resource limits | RESOLVED | Pinned to `curlimages/curl:8.7.1`; added `deploy.resources.limits` (64m RAM, 0.1 CPU) |
+| CA-021 | `Dockerfile:9` | Sentence Transformers model downloaded at build with no integrity/hash check | RESOLVED | Added `SENTENCE_TRANSFORMERS_HOME=/app/models`; documented hash-check gap with instructions for pre-downloaded model path |
+| CA-022 | `app/routers/health.py:15` | Version hardcoded as `"1.0.0"` instead of `settings.version` | RESOLVED | Changed to `settings.version` |
+| CA-023 | `app/routers/billing.py:63–65` | `success_url`/`cancel_url` defaults hardcode `lexara.tech` — staging calls hit prod | RESOLVED | Now uses `settings.frontend_url` (new config field, default `https://lexara.tech`) |
+| CA-024 | `app/main.py:19–56` | Startup errors swallowed — app starts degraded with no operator alert | RESOLVED | DB init failure now logs at CRITICAL and re-raises; seeding failures are non-fatal and log at ERROR |
 
 ### P3 — Nitpicks
 
 | ID | Location | Title | Status | Resolution |
 |---|---|---|---|---|
-| CA-025 | `tests/conftest.py:276–292` | `MOCK_EXTRACT_CLAUSES_RESPONSE` uses wrong schema fields vs `ExtractedClause` model | OPEN | |
-| CA-026 | `app/routers/auth_routes.py:27` | `register` is `def` (sync) while all other v1 endpoints are `async def` | OPEN | |
+| CA-025 | `tests/conftest.py:276–292` | `MOCK_EXTRACT_CLAUSES_RESPONSE` uses wrong schema fields vs `ExtractedClause` model | RESOLVED | Updated mock to use correct fields: type, severity, original, revised, rationale, section |
+| CA-026 | `app/routers/auth_routes.py:27` | `register` is `def` (sync) while all other v1 endpoints are `async def` | RESOLVED | Changed to `async def` |
 | CA-027 | `app/services/groq_llm_service.py:169` | Same unbound `content` pattern as CA-006 | RESOLVED | `content = ""` initialised before try block — commit a4edf2f |
-| CA-028 | `app/routers/procurement_clause_routes.py:100` | Use `.is_(True)` instead of `== True # noqa` | OPEN | |
-| CA-029 | `app/main.py` | Critical startup failures (DB init) should re-raise, not just log | OPEN | |
-| CA-030 | `app/routers/billing.py:63` | Hardcoded prod URLs in billing defaults | OPEN | |
+| CA-028 | `app/routers/procurement_clause_routes.py:100` | Use `.is_(True)` instead of `== True # noqa` | RESOLVED | Changed to `.is_(True)` |
+| CA-029 | `app/main.py` | Critical startup failures (DB init) should re-raise, not just log | RESOLVED | Folded into CA-024 fix |
+| CA-030 | `app/routers/billing.py:63` | Hardcoded prod URLs in billing defaults | RESOLVED | Folded into CA-023 fix |
 
 ---
 
@@ -95,20 +95,20 @@ _Sources: Code Audit (2026-05-02) · Frontend Audit (2026-05-02)_
 
 | ID | Location | Title | Status | Resolution |
 |---|---|---|---|---|
-| FE-011 | `website/index.html` | No favicon, no Open Graph / Twitter Card meta tags | OPEN | |
+| FE-011 | `website/index.html` | No favicon, no Open Graph / Twitter Card meta tags | RESOLVED | Added SVG data-URI favicon; added og:type/url/title/description/image/locale and Twitter Card meta tags |
 | FE-012 | `website/index.html.bak` | Backup file served publicly by nginx — information disclosure | RESOLVED | Deleted website/index.html.bak 2026-05-02 |
-| FE-013 | `docker-compose.yml` | No gzip/brotli compression or `Cache-Control` headers in nginx | OPEN | |
-| FE-014 | `website/index.html:409–417` | CTA email form is a silent no-op — all submissions discarded, no backend call | OPEN | |
-| FE-015 | `procurement*.html` inline `<style>` blocks | Inline styles use raw hex values instead of the CSS token system from `styles.css` | OPEN | |
-| FE-016 | `procurement-intelligence.html:683` | Two different constant names for same API base URL in same script block | OPEN | |
+| FE-013 | `docker-compose.yml` | No gzip/brotli compression or `Cache-Control` headers in nginx | RESOLVED | gzip was added in FE-003; added `Cache-Control: public, immutable` for static assets and `no-cache` for HTML |
+| FE-014 | `website/index.html:409–417` | CTA email form is a silent no-op — all submissions discarded, no backend call | RESOLVED | Handler was already added via session-D (showToast acknowledgment); form is no longer silent |
+| FE-015 | `procurement*.html` inline `<style>` blocks | Inline styles use raw hex values instead of the CSS token system from `styles.css` | OPEN | Deferred — no breakage, pure cosmetic consistency |
+| FE-016 | `procurement-intelligence.html:683` | Two different constant names for same API base URL in same script block | RESOLVED | `PT_API` now derived from `API` constant: `const PT_API = \`\${API}/procurement\`` |
 
 ### P3 — Nitpicks
 
 | ID | Location | Title | Status | Resolution |
 |---|---|---|---|---|
-| FE-017 | `procurement.html`, `procurement-ai.html`, `procurement-intelligence.html` | Copyright year says 2025 (should be 2026) | OPEN | |
-| FE-018 | `website/script.js` | Dead code: `switchAuthTab` stub, `renderExtractClauses`, `gate-*` listeners, duplicate `GATE_API` | OPEN | |
-| FE-019 | `procurement-intelligence.html:140` | Empty `<li></li>` in nav list | OPEN | |
-| FE-020 | Procurement pages tab buttons | Emoji in tab button labels not wrapped in `aria-hidden="true"` | OPEN | |
-| FE-021 | `website/script.js` `promptEmail()` modal | Modal has no `role="dialog"`, no focus trap | OPEN | |
-| FE-022 | Multiple pages | `target="_blank"` links have no "opens in new tab" warning | OPEN | |
+| FE-017 | `procurement.html`, `procurement-ai.html`, `procurement-intelligence.html` | Copyright year says 2025 (should be 2026) | RESOLVED | Updated to 2026 in all three files |
+| FE-018 | `website/script.js` | Dead code: `switchAuthTab` stub, `renderExtractClauses`, `gate-*` listeners, duplicate `GATE_API` | RESOLVED | Removed `renderExtractClauses` dead alias; other dead code already cleaned in FE-001/FE-006 pass |
+| FE-019 | `procurement-intelligence.html:140` | Empty `<li></li>` in nav list | RESOLVED | Removed empty `<li>` element |
+| FE-020 | Procurement pages tab buttons | Emoji in tab button labels not wrapped in `aria-hidden="true"` | RESOLVED | Wrapped all emoji in `<span aria-hidden="true">` in procurement.html and procurement-ai.html |
+| FE-021 | `website/script.js` `promptEmail()` modal | Modal has no `role="dialog"`, no focus trap | RESOLVED | Added `role="dialog"`, `aria-modal="true"`, `aria-labelledby="modal-title"` to modal container |
+| FE-022 | Multiple pages | `target="_blank"` links have no "opens in new tab" warning | RESOLVED | Added `rel="noopener noreferrer"` + `aria-label="... (opens in new tab)"` to all `target="_blank"` links in procurement pages |

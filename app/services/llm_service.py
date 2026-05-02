@@ -106,38 +106,9 @@ async def analyze_with_claude(
             analysis = json.loads(content)
             analysis["tokens_used"] = tokens_used
 
-            # Normalize key_risks (list or dict → list of RiskFlag dicts)
-            if "key_risks" in analysis:
-                raw = analysis["key_risks"]
-                if isinstance(raw, dict):
-                    raw = [{"title": k, **v} if isinstance(v, dict) else {"title": k, "description": str(v), "severity": "medium"} for k, v in raw.items()]
-                analysis["key_risks"] = [
-                    {
-                        "severity": r.get("severity", "medium"),
-                        "title": r.get("title", ""),
-                        "description": r.get("description", ""),
-                        "section": r.get("section"),
-                        "recommendation": r.get("recommendation"),
-                    }
-                    for r in raw if isinstance(r, dict)
-                ]
-
-            # Normalize missing_clauses (list of dicts or strings)
-            if "missing_clauses" in analysis:
-                raw = analysis["missing_clauses"]
-                normalized = []
-                for mc in raw:
-                    if isinstance(mc, dict):
-                        normalized.append({
-                            "clause": mc.get("clause", mc.get("name", str(mc))),
-                            "importance": mc.get("importance", mc.get("severity", "medium")),
-                            "rationale": mc.get("rationale", mc.get("reason", "")),
-                        })
-                    else:
-                        normalized.append({"clause": str(mc), "importance": "medium", "rationale": ""})
-                analysis["missing_clauses"] = normalized
-
-            return analysis
+            # CA-016: normalization extracted to shared helper to prevent drift
+            from app.services.analysis_utils import normalize_analysis
+            return normalize_analysis(analysis)
 
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse failed: {e} | content: {content[:300]}")

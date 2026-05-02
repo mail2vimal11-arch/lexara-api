@@ -24,10 +24,10 @@ class Settings(BaseSettings):
     
     # API Keys
     claude_api_key: str
-    receipts_api_key: str
-    stripe_secret_key: str
-    stripe_publishable_key: str
-    stripe_webhook_secret: str
+    # receipts_api_key removed — CA-014: dead config, never referenced anywhere
+    stripe_secret_key: Optional[str] = None   # CA-014: optional; billing disabled if unset
+    stripe_publishable_key: Optional[str] = None
+    stripe_webhook_secret: Optional[str] = None
 
     # Stripe Price IDs
     stripe_price_starter:  str = "price_1TI9WfPGiwBBvDi6P0GacboQ"
@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60
     ted_api_base: str = "https://api.ted.europa.eu/v3"
     ocp_api_base: str = "https://data.open-contracting.org/api/3/action"
+
+    # Frontend URL (used in billing redirect defaults — CA-023/CA-030)
+    frontend_url: str = "https://lexara.tech"
 
     # HuggingFace (local SLM)
     hf_api_token: Optional[str] = None

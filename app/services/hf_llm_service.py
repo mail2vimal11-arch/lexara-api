@@ -129,7 +129,9 @@ async def analyze_with_huggingface(
             if response.status_code == 503:
                 # Model is loading — HuggingFace cold start, retry once after wait
                 estimated_time = response.json().get("estimated_time", 30)
-                wait = min(estimated_time, 60)
+                # CA-010: cap at 20s — holding the caller's DB connection for longer
+                # risks exhausting the connection pool under concurrent cold-starts.
+                wait = min(estimated_time, 20)
                 logger.info(f"HuggingFace model loading, retrying in {wait}s")
                 await asyncio.sleep(wait)
                 response = await client.post(url, headers=headers, json=payload)

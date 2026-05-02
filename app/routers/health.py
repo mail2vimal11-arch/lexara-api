@@ -3,6 +3,8 @@
 from fastapi import APIRouter
 from datetime import datetime
 
+from app.config import settings
+
 router = APIRouter()
 
 
@@ -12,7 +14,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "version": "1.0.0"
+        "version": settings.version,  # CA-022: use settings.version not hardcoded string
     }
 
 

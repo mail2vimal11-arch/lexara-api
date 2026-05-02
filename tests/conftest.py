@@ -274,18 +274,26 @@ MOCK_MISSING_CLAUSES_RESPONSE = {
 }
 
 MOCK_EXTRACT_CLAUSES_RESPONSE = {
+    # CA-025: fields corrected to match ExtractedClause model in app/routers/contracts.py
+    # (type, severity, original, revised, rationale, section)
     "clauses": [
         {
             "type": "termination",
+            "severity": "high",
+            "original": "Either party may terminate with 60 days notice.",
+            "revised": "Either party may terminate with 90 days written notice for convenience, "
+                       "or immediately upon uncured material breach.",
+            "rationale": "Extended notice period provides stability under Ontario contract norms.",
             "section": "Section 2",
-            "summary": "Either party may terminate with 60 days notice or 30 days for material breach.",
-            "confidence": 0.95,
         },
         {
             "type": "liability",
+            "severity": "medium",
+            "original": "Excludes indirect damages and caps aggregate liability at 12 months of fees.",
+            "revised": "Caps aggregate liability at 24 months of fees; excludes consequential "
+                       "damages as permitted under Ontario law.",
+            "rationale": "Cap extended to align with industry norms for professional services.",
             "section": "Section 6",
-            "summary": "Excludes indirect damages and caps aggregate liability at 12 months of fees.",
-            "confidence": 0.93,
         },
     ],
     "tokens_used": 170,

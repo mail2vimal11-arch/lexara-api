@@ -1,17 +1,28 @@
-"""API key authentication middleware."""
+"""API key authentication middleware.
+
+Security note: any change to this file must be reviewed.
+Auth bypass was fixed in 25fdee4; JWT validation added at middleware layer — CA-008.
+"""
 
 from fastapi import Request
+from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 import logging
+
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 
 class APIKeyMiddleware(BaseHTTPMiddleware):
-    """Validate API keys for protected routes."""
-    
-    # Routes that don't require authentication
+    """Validate JWT for protected /v1 routes.
+
+    Defense in depth: middleware validates the JWT signature so clearly invalid
+    tokens are rejected before reaching the route layer.  Full user lookup
+    (is_active check, DB query) still happens in get_current_user at route level.
+    """
+
     UNPROTECTED_ROUTES = {
         "/health",
         "/docs",
@@ -21,7 +32,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         "/v1/auth/register",
         "/v1/auth/login",
     }
-    
+
     async def dispatch(self, request: Request, call_next):
         """Process request."""
 
@@ -34,18 +45,25 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         # Skip auth for public routes
         if request.url.path in self.UNPROTECTED_ROUTES:
             return await call_next(request)
-        
-        # Require auth for API routes — actual JWT validation is handled
-        # by Depends(get_current_user) at the route level.
-        # Middleware only rejects requests that are missing the Bearer prefix entirely.
+
         if request.url.path.startswith("/v1"):
             auth_header = request.headers.get("Authorization", "")
 
             if not auth_header or not auth_header.startswith("Bearer "):
                 return JSONResponse(
                     status_code=401,
-                    content={"error": "unauthorized", "message": "Invalid or missing Authorization header"}
+                    content={"error": "unauthorized", "message": "Invalid or missing Authorization header"},
                 )
-        
+
+            # CA-008: validate JWT signature at middleware layer (defense in depth)
+            token = auth_header.split(" ", 1)[1]
+            try:
+                jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+            except JWTError:
+                return JSONResponse(
+                    status_code=401,
+                    content={"error": "unauthorized", "message": "Invalid or expired token"},
+                )
+
         response = await call_next(request)
         return response

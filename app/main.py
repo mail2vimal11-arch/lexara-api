@@ -19,39 +19,40 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     logger.info(f"🚀 {settings.app_name} v{settings.version} starting...")
+
+    # CA-024 / CA-029: DB init is critical — re-raise on failure so the container
+    # exits with a non-zero code rather than starting in a degraded state.
     try:
         init_db()
-        # Create procurement AI tables
         from app.database.session import Base, engine
         from app.models import user, tender, clause, audit, billing  # noqa: F401
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Database initialized")
-
-        # Seed Ontario standard clauses + bootstrap FAISS index
-        db = SessionLocal()
-        try:
-            from app.services.clause_seed import seed_clauses
-            seeded = seed_clauses(db)
-            if seeded:
-                logger.info(f"✅ Seeded {seeded} standard clauses")
-
-            # Seed reference tenders (fallback when APIs are unavailable)
-            from app.services.tender_seed import seed_tenders
-            tender_seeded = seed_tenders(db)
-            if tender_seeded:
-                logger.info(f"✅ Seeded {tender_seeded} reference tenders")
-
-            from app.nlp.search import bootstrap_index_from_db
-            bootstrap_index_from_db(db)
-            logger.info("✅ FAISS index ready")
-
-            # Skip live ingestion at startup — it blocks the app for 60-180s
-            # when TED/OCP APIs are down. Reference tenders are already seeded.
-            # Live ingestion runs on-demand via POST /v1/procurement/ingestion/run
-        finally:
-            db.close()
     except Exception as e:
-        logger.error(f"❌ Startup error: {e}", exc_info=True)
+        logger.critical(f"❌ Database initialization failed — refusing to start: {e}", exc_info=True)
+        raise
+
+    # Non-critical startup tasks: seeding and FAISS bootstrap.
+    # Failures here are logged but do NOT prevent the app from starting.
+    db = SessionLocal()
+    try:
+        from app.services.clause_seed import seed_clauses
+        seeded = seed_clauses(db)
+        if seeded:
+            logger.info(f"✅ Seeded {seeded} standard clauses")
+
+        from app.services.tender_seed import seed_tenders
+        tender_seeded = seed_tenders(db)
+        if tender_seeded:
+            logger.info(f"✅ Seeded {tender_seeded} reference tenders")
+
+        from app.nlp.search import bootstrap_index_from_db
+        bootstrap_index_from_db(db)
+        logger.info("✅ FAISS index ready")
+    except Exception as e:
+        logger.error(f"❌ Non-critical startup task failed (app will still serve requests): {e}", exc_info=True)
+    finally:
+        db.close()
 
     yield
 

@@ -16,7 +16,9 @@ from app.security import get_current_user
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-stripe.api_key = settings.stripe_secret_key
+# CA-014: stripe keys are now Optional — guard before using them
+if settings.stripe_secret_key:
+    stripe.api_key = settings.stripe_secret_key
 
 # ── Plan config ───────────────────────────────────────────────
 PLANS = {
@@ -85,11 +87,11 @@ async def create_checkout(
     # Use authenticated user's email — prevents email impersonation
     email = current_user.email
 
-    # CA-019: append session_id with correct separator
-    base_success = request.success_url or "https://lexara.tech?checkout=success"
+    # CA-019: correct separator; CA-023/CA-030: URL from settings not hardcoded
+    base_success = request.success_url or f"{settings.frontend_url}?checkout=success"
     sep = "&" if "?" in base_success else "?"
     success_url = f"{base_success}{sep}session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = request.cancel_url or "https://lexara.tech?checkout=cancelled"
+    cancel_url = request.cancel_url or f"{settings.frontend_url}?checkout=cancelled"
 
     try:
         session = stripe.checkout.Session.create(

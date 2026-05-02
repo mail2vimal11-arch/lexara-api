@@ -55,10 +55,16 @@ services:
       - internal
 
   hf-warmer:
-    image: curlimages/curl:latest
+    # CA-020: pin to specific version (not :latest) + add resource limits
+    image: curlimages/curl:8.7.1
     restart: always
     env_file: .env
     entrypoint: /bin/sh
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+          cpus: "0.10"
     command:
       - -c
       - |

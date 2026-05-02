@@ -7,8 +7,7 @@ import logging
 from datetime import datetime
 import uuid
 
-from app.database.session import get_db
-from app.services.llm_service import analyze_with_claude
+from app.services.llm_service import analyze_with_claude  # CA-017: get_db removed — unused in this router
 from app.security import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -45,8 +44,7 @@ class SummaryResponse(BaseModel):
 @router.post("/summary", response_model=SummaryResponse)
 async def get_summary(
     request: ContractRequest,
-    db=Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user),  # CA-017: db removed — not used in this router
 ):
     """
     Tab 1 — Plain-English summary of the contract.
@@ -91,8 +89,7 @@ class RiskScoreResponse(BaseModel):
 @router.post("/risk-score", response_model=RiskScoreResponse)
 async def get_risk_score(
     request: ContractRequest,
-    db=Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user),  # CA-017: db removed — not used in this router
 ):
     """
     Tab 2 — Quantified risk score 0–100 with category breakdown.
@@ -142,8 +139,7 @@ class KeyRisksResponse(BaseModel):
 @router.post("/key-risks", response_model=KeyRisksResponse)
 async def get_key_risks(
     request: ContractRequest,
-    db=Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user),  # CA-017: db removed — not used in this router
 ):
     """
     Tab 3 — Detailed list of legal risks with severity and recommendations.
@@ -188,8 +184,7 @@ class MissingClausesResponse(BaseModel):
 @router.post("/missing-clauses", response_model=MissingClausesResponse)
 async def get_missing_clauses(
     request: ContractRequest,
-    db=Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user),  # CA-017: db removed — not used in this router
 ):
     """
     Tab 4 — Clauses that are absent but should be present.
@@ -237,8 +232,7 @@ class ExtractClausesResponse(BaseModel):
 @router.post("/extract-clauses", response_model=ExtractClausesResponse)
 async def extract_clauses(
     request: ContractRequest,
-    db=Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user),  # CA-017: db removed — not used in this router
 ):
     """
     Tab 5 — Extract and categorize existing clauses.
