@@ -63,6 +63,7 @@ async def analyze_with_claude(
     prompt = prompt_fn(text, contract_type, jurisdiction)
 
     try:
+        content = ""
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.post(
                 "https://api.anthropic.com/v1/messages",

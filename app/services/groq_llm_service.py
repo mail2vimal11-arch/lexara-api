@@ -102,6 +102,7 @@ async def analyze_with_groq(
     }
 
     try:
+        content = ""
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(GROQ_API_URL, headers=headers, json=payload)
 
