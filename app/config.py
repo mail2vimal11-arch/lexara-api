@@ -16,14 +16,15 @@ class Settings(BaseSettings):
     port: int = 8000
     log_level: str = "INFO"
     
-    # Database
-    database_url: str = "postgresql://localhost/lexrisk"
-    
-    # Redis
-    redis_url: str = "redis://localhost:6379/0"
+    # Database — default uses Docker Compose service name "db"
+    database_url: str = "postgresql://lexara:lexara123@db:5432/lexaradb"
+
+    # Redis — default uses Docker Compose service name "redis"
+    redis_url: str = "redis://redis:6379/0"
     
     # API Keys
-    claude_api_key: str
+    claude_api_key: Optional[str] = None
+    claude_model: str = "claude-haiku-4-5-20250514"  # override via CLAUDE_MODEL env var
     # receipts_api_key removed — CA-014: dead config, never referenced anywhere
     stripe_secret_key: Optional[str] = None   # CA-014: optional; billing disabled if unset
     stripe_publishable_key: Optional[str] = None

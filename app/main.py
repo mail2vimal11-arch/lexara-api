@@ -11,7 +11,7 @@ from app.database.session import init_db, SessionLocal
 from app.routers import contracts, usage, health, upload, billing, procurement
 from app.routers import auth_routes, procurement_clause_routes, ingestion_routes, compare_routes
 from app.middleware.auth import APIKeyMiddleware
-from app.middleware.logging import LoggingMiddleware
+from app.middleware.logging import logging_middleware
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,9 @@ app.add_middleware(
 )
 
 # Custom Middleware
-app.add_middleware(LoggingMiddleware)
+# LoggingMiddleware registered as plain async function (not BaseHTTPMiddleware)
+# to avoid the Starlette body double-read bug that corrupts JSON request bodies.
+app.middleware("http")(logging_middleware)
 app.add_middleware(APIKeyMiddleware)
 
 # Include Routers
