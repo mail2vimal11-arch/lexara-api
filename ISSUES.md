@@ -1,6 +1,6 @@
 # ISSUES.md
 _Authoritative issue tracker. All audit findings logged here. Updated when resolved._
-_Sources: Code Audit (2026-05-02) · Frontend Audit (2026-05-02)_
+_Sources: Code Audit (2026-05-02) · Frontend Audit (2026-05-02) · Production Ops Audit (2026-05-03) · UAT (2026-05-03)_
 
 ---
 
@@ -112,3 +112,56 @@ _Sources: Code Audit (2026-05-02) · Frontend Audit (2026-05-02)_
 | FE-020 | Procurement pages tab buttons | Emoji in tab button labels not wrapped in `aria-hidden="true"` | RESOLVED | Wrapped all emoji in `<span aria-hidden="true">` in procurement.html and procurement-ai.html |
 | FE-021 | `website/script.js` `promptEmail()` modal | Modal has no `role="dialog"`, no focus trap | RESOLVED | Added `role="dialog"`, `aria-modal="true"`, `aria-labelledby="modal-title"` to modal container |
 | FE-022 | Multiple pages | `target="_blank"` links have no "opens in new tab" warning | RESOLVED | Added `rel="noopener noreferrer"` + `aria-label="... (opens in new tab)"` to all `target="_blank"` links in procurement pages |
+
+---
+
+## Production / Ops Issues (PO-*)
+_Found during live VPS debugging 2026-05-03. All resolved same session._
+
+### P0 — Blockers
+
+| ID | Location | Title | Status | Resolution |
+|---|---|---|---|---|
+| PO-001 | `/opt/lexara-api/.env` | `JWT_SECRET` missing — app crashed at startup (`ValidationError: Field required`) | RESOLVED | Generated via `openssl rand -hex 32` and appended to `.env`; also added `SECRET_KEY` |
+| PO-002 | `app/config.py:20` + `.env` | `DATABASE_URL` default pointed to `localhost` — API couldn't reach DB inside Docker network | RESOLVED | Changed config default to `postgresql://lexara:lexara123@db:5432/lexaradb`; `.env` updated to match; `docker compose up --force-recreate` required (restart does not re-read env_file) |
+| PO-003 | `app/middleware/logging.py` | `LoggingMiddleware` extends `BaseHTTPMiddleware` — Starlette body double-read bug corrupts JSON request bodies; root cause of "JSON decode error: Extra data" on all POST endpoints | RESOLVED | Converted to plain `async def logging_middleware` registered via `app.middleware("http")` — commit 5c5e55c |
+| PO-004 | `app/services/llm_service.py:76` | Claude model name `claude-haiku-4-5-20251001` hardcoded — returns HTTP 404 from Anthropic API on every request | RESOLVED | Made configurable via `CLAUDE_MODEL` env var; default set to `claude-haiku-4-5-20250514`; `claude_api_key` made Optional — commit 5c5e55c |
+| PO-005 | `/opt/lexara-api/.env` | `USE_GROQ=true` and `GROQ_API_KEY` missing — all LLM calls fell through to Claude (invalid key → 500) | RESOLVED | Added `USE_GROQ=true` and valid `GROQ_API_KEY` to `.env` |
+
+### P1 — Must Fix Before Launch
+
+| ID | Location | Title | Status | Resolution |
+|---|---|---|---|---|
+| PO-006 | `app/config.py:23` | `REDIS_URL` default pointed to `localhost` instead of Docker service `redis` | RESOLVED | Changed default to `redis://redis:6379/0` — commit 5c5e55c |
+| PO-007 | `.github/workflows/tests.yml:62` | Deploy script used `docker compose restart api` — does not re-read `env_file`, env changes silently ignored | RESOLVED | Changed to `docker compose build api && docker compose up -d --force-recreate api` — commit 5c5e55c |
+| PO-008 | `.github/workflows/tests.yml:40-41` | CI missing `SECRET_KEY` and `JWT_SECRET` env vars — every CI run fails at import with `ValidationError`; dead `RECEIPTS_API_KEY` still referenced | RESOLVED | Added `SECRET_KEY` and `JWT_SECRET` from GitHub Secrets; removed `RECEIPTS_API_KEY` — commit 5c5e55c |
+
+### P2 — Should Fix
+
+| ID | Location | Title | Status | Resolution |
+|---|---|---|---|---|
+| PO-009 | repo root | No `.dockerignore` — `.env` and dev artifacts baked into Docker image on every build | RESOLVED | Created `.dockerignore` excluding `.env`, `__pycache__`, `.git`, `tests/` — commit 5c5e55c |
+
+---
+
+## UAT Findings (UAT-*)
+_From QA agent UAT against https://lexara.tech — 2026-05-03._
+_Note: production is running pre-PR-17 code. Items marked "pending deploy" resolve automatically when PR #17 merges._
+
+| ID | Test | Result | Status | Notes |
+|---|---|---|---|---|
+| UAT-001 | Auth login (correct credentials) | PASS | — | Returns JWT, role=procurement |
+| UAT-002 | Auth login (wrong password) | PASS | — | Returns 401 Invalid credentials |
+| UAT-003 | POST /v1/summary | PASS | — | Groq responds in ~417ms, correct Ontario jurisdiction |
+| UAT-004 | POST /v1/risk-score | PASS | — | Returns structured risk scores by category |
+| UAT-005 | POST /v1/key-risks | PASS | — | Returns 6 risks with severity/recommendation |
+| UAT-006 | POST /v1/missing-clauses | PASS | — | Returns 9 missing clauses including IP, governing law |
+| UAT-007 | POST /v1/extract-clauses | PASS | — | Returns redline suggestions per clause |
+| UAT-008 | GET /v1/usage | PASS | — | Real DB query confirmed (CA-005 live) |
+| UAT-009 | https://lexara.tech loads | PASS | — | 200, correct title; favicon present in branch, pending deploy |
+| UAT-010 | https://lexara.tech/terms returns 200 | FAIL | RESOLVED in branch | nginx try_files added (FE-003); pending PR #17 deploy |
+| UAT-011 | https://lexara.tech/privacy returns 200 | FAIL | RESOLVED in branch | nginx try_files added (FE-003); pending PR #17 deploy |
+| UAT-012 | Security headers on frontend | FAIL | RESOLVED in branch | X-Frame-Options, CSP, Referrer-Policy added (FE-008); pending PR #17 deploy |
+| UAT-013 | procurement.html loads | PASS | — | 200 |
+| UAT-014 | procurement-ai.html loads | PASS | — | 200 |
+| UAT-015 | procurement-intelligence.html loads | PASS | — | 200 |

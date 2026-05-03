@@ -1,5 +1,5 @@
 # PROJECT_STATUS.md
-_Single source of truth for parallel sessions. Updated 2026-05-02. All 4 waves complete._
+_Single source of truth for parallel sessions. Updated 2026-05-03. All 4 waves complete. Production operational._
 
 ---
 
@@ -194,6 +194,79 @@ _None._
 | 2026-05-02 | FE-003 + FE-007 + FE-008 bundled | All three require the same nginx.conf file; splitting creates conflicts |
 | 2026-05-02 | HF warmer interval set to 600s (from 240s) | Safely below 15-min HF idle threshold; 60% fewer pings |
 | 2026-05-02 | `use_groq` and `use_local_llm` both default `False` | Safe default — Claude always available; free tiers opt-in via env |
+
+---
+
+## Production Status (2026-05-03)
+
+| Service | Status | Notes |
+|---|---|---|
+| API (https://api.lexara.tech) | ✅ Healthy | Groq primary tier; all 5 analysis endpoints green |
+| Frontend (https://lexara.tech) | ✅ Healthy | nginx serving; PR #17 pending for security headers + /terms /privacy |
+| Database | ✅ Running | PostgreSQL 16, `lexaradb` |
+| Redis | ✅ Running | redis:7-alpine |
+| Groq inference | ✅ Active | `llama-3.1-8b-instant`; ~400ms avg response |
+| SaulLM/HF inference | ⚠️ Inactive | `USE_LOCAL_LLM=false`; HF_API_TOKEN not yet set on VPS |
+| Claude fallback | ⚠️ Degraded | API key invalid; will fail if Groq exhausted |
+
+**PR #17** (`claude/sleepy-banach-0c2174`) — open, awaiting merge. Fixes 43 code issues + 8 ops issues. 3 UAT failures (terms/privacy 404, security headers) resolve on deploy.
+
+---
+
+## SaulLM → Groq Migration Plan
+
+**Goal:** Replace Groq (`llama-3.1-8b-instant`) with SaulLM (`Equall/Saul-7B-Instruct-v1` or fine-tuned) as the primary inference tier. Groq becomes the fallback.
+
+**Why SaulLM over Groq:**
+- SaulLM is fine-tuned on legal text (SAUL corpus) — better contract analysis quality
+- Self-controlled inference reduces dependency on third-party free tier rate limits
+- Aligns with ADR-001 (SaulLM as primary once training completes)
+- Fine-tuned `mail2vimal11-arch/lexara-legal-saullm` will be domain-specific
+
+**Current waterfall order (code):** Groq → HF/SaulLM → Claude
+
+**Problem:** The current waterfall hardcodes Groq as Tier 1. To make SaulLM primary, we need a code change — not just env var toggles.
+
+**Proposed new waterfall:** SaulLM → Groq (rate-limit fallback) → Claude (paid fallback)
+
+### Phase 1 — Activate SaulLM alongside Groq (VPS env change, no code change)
+```bash
+# On VPS — set HF token and model, keep Groq active as fallback
+echo "USE_LOCAL_LLM=true" >> /opt/lexara-api/.env
+echo "HF_API_TOKEN=hf_<your_token>" >> /opt/lexara-api/.env
+echo "HF_MODEL_ID=Equall/Saul-7B-Instruct-v1" >> /opt/lexara-api/.env
+docker compose up -d --force-recreate api
+```
+With this, waterfall is: Groq (primary) → SaulLM (Groq fails) → Claude. Validates SaulLM works before promoting it.
+
+### Phase 2 — Promote SaulLM to Tier 1 (code change)
+**File:** `app/services/llm_service.py` — swap Tier 1 and Tier 2 blocks:
+```python
+# New order:
+# Tier 1: SaulLM (HF) — legal-domain primary
+if settings.use_local_llm and settings.hf_api_token and settings.hf_model_id:
+    ...
+
+# Tier 2: Groq — free fast fallback when HF is cold/rate-limited
+if settings.use_groq and settings.groq_api_key:
+    ...
+
+# Tier 3: Claude — paid last resort
+```
+Also add config alias: `use_saullm: bool = False` as a clearer flag than `use_local_llm`.
+
+### Phase 3 — Swap to fine-tuned model (env change after Kaggle training)
+```bash
+sed -i 's|HF_MODEL_ID=.*|HF_MODEL_ID=mail2vimal11-arch/lexara-legal-saullm|' /opt/lexara-api/.env
+docker compose up -d --force-recreate api
+```
+
+### Acceptance criteria before promoting SaulLM to Tier 1
+- [ ] SaulLM returns valid JSON for all 5 analysis modes (summary, risk-score, key-risks, missing-clauses, extract-clauses)
+- [ ] P99 latency < 10s (HF cold start included in budget)
+- [ ] Response quality ≥ Groq on 10 sample contracts (manual review)
+- [ ] HF rate limit headroom confirmed for expected traffic volume
+- [ ] Groq confirmed as automatic fallback when HF returns 503/429
 
 ---
 
