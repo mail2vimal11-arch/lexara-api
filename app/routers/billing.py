@@ -115,7 +115,7 @@ async def create_checkout(
             "plan": plan["name"],
             "amount_cad": plan["price_cad"],
         }
-    except stripe.StripeError as e:
+    except stripe.error.StripeError as e:
         logger.error(f"Stripe checkout error: {e}")
         raise HTTPException(status_code=502, detail=f"Payment provider error: {str(e)}")
 
@@ -151,7 +151,7 @@ async def stripe_webhook(request: Request, db=Depends(get_db)):
         event = stripe.Webhook.construct_event(
             payload, sig_header, settings.stripe_webhook_secret
         )
-    except stripe.SignatureVerificationError:
+    except stripe.error.SignatureVerificationError:
         logger.warning("Invalid Stripe webhook signature")
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
     except Exception as e:

@@ -1,62 +1,91 @@
-"""API usage and billing endpoints."""
+"""API usage and quota information — live counts from AuditLog."""
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
 import logging
 
 from app.database.session import get_db
 from app.models.billing import Analysis
 from app.routers.billing import PLANS
 from app.security import get_current_user
+from app.models.audit import AuditLog
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# Analysis-triggering actions logged by the contracts router
+ANALYSIS_ACTIONS = {
+    "CONTRACT_SUMMARY",
+    "CONTRACT_RISK_SCORE",
+    "CONTRACT_KEY_RISKS",
+    "CONTRACT_MISSING_CLAUSES",
+    "CONTRACT_EXTRACT_CLAUSES",
+}
+
+# Per-role quota defaults (mirrors billing plans without requiring a plan_id column)
+_ROLE_PLAN = {
+    "admin":       {"plan": "business",    "analyses_limit": -1,   "overage_cad": 0.00},
+    "procurement": {"plan": "starter",     "analyses_limit": 50,   "overage_cad": 0.12},
+    "legal":       {"plan": "growth",      "analyses_limit": 500,  "overage_cad": 0.10},
+}
+_DEFAULT_PLAN = {"plan": "free", "analyses_limit": 5, "overage_cad": 0.15}
+
 
 @router.get("/usage")
 async def get_usage(
-    db=Depends(get_db),
+    db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """
-    Get API usage and quota information.
+    Return real usage and quota information for the authenticated user.
 
-    CA-005: returns real data from the DB instead of hardcoded stubs.
-    - analyses_used_this_month: actual Analysis rows for this billing period
-    - plan/limits: derived from the authenticated user's plan_id
+    Counts are drawn from the AuditLog for the current calendar month.
+    Quota limits are derived from the user's role.
     """
     try:
-        plan_id   = current_user.plan_id or "free"
-        plan_info = PLANS.get(plan_id, PLANS["free"])
-
-        # Start of current calendar month (UTC)
-        now         = datetime.utcnow()
+        # Calendar-month window
+        now = datetime.utcnow()
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        # First day of next month
-        next_month  = (month_start + timedelta(days=32)).replace(day=1)
+        next_month = (month_start + timedelta(days=32)).replace(day=1)
 
-        analyses_used = (
-            db.query(func.count(Analysis.id))
+        # Count analysis actions this month for this user
+        analyses_this_month: int = (
+            db.query(AuditLog)
             .filter(
-                Analysis.user_id == current_user.id,
-                Analysis.created_at >= month_start,
+                AuditLog.user_id == str(current_user.id),
+                AuditLog.action.in_(ANALYSIS_ACTIONS),
+                AuditLog.timestamp >= month_start,
+                AuditLog.timestamp < next_month,
             )
-            .scalar()
-        ) or 0
+            .count()
+        )
 
-        limit     = plan_info["analyses_limit"]
-        remaining = max(0, limit - analyses_used) if limit != -1 else -1  # -1 = unlimited
+        # Plan info from role
+        plan_info = _ROLE_PLAN.get(current_user.role, _DEFAULT_PLAN)
+        limit       = plan_info["analyses_limit"]
+        overage_cad = plan_info["overage_cad"]
+
+        if limit == -1:
+            remaining = -1   # unlimited
+            overage   = 0.00
+        else:
+            remaining = max(0, limit - analyses_this_month)
+            overage_count = max(0, analyses_this_month - limit)
+            overage = round(overage_count * overage_cad, 2)
 
         return {
-            "plan": plan_id,
-            "analyses_used_this_month": analyses_used,
-            "analyses_limit": limit,
-            "remaining_quota": remaining,
+            "plan": plan_info["plan"],
+            "role": current_user.role,
+            "analyses_used_this_month": analyses_this_month,
+            "analyses_limit": limit,          # -1 = unlimited
+            "remaining_quota": remaining,     # -1 = unlimited
+            "overage_cost_per_analysis": overage_cad,
+            "estimated_overage_charges": overage,
+            "billing_period_start": month_start.isoformat(),
+            "billing_period_end": next_month.isoformat(),
             "reset_date": next_month.isoformat(),
-            "overage_cost_per_analysis": 0.12,
-            "estimated_overage_charges": 0.00,
-            "next_billing_date": next_month.isoformat(),
         }
 
     except Exception as e:

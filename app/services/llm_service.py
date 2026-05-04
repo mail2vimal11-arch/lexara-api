@@ -23,7 +23,18 @@ async def analyze_with_claude(
     **kwargs
 ) -> Dict[str, Any]:
     """Call LLM with a focused prompt based on the requested tab/mode.
-    Waterfall: Groq (free) → HuggingFace (SaulLM) → Claude (paid fallback)."""
+
+    3-tier waterfall — each tier requires BOTH a feature flag AND credentials,
+    otherwise it is silently skipped and the request falls through to the next:
+
+      Tier 1  Groq           USE_GROQ=true        + GROQ_API_KEY
+      Tier 2  HuggingFace    USE_LOCAL_LLM=true   + HF_API_TOKEN + HF_MODEL_ID
+      Tier 3  Claude (paid)  CLAUDE_API_KEY       (always-on fallback)
+
+    Tiers 1 and 2 also fall through on any runtime exception (rate limit,
+    cold-start timeout, parse failure) so a single bad request never blocks
+    the user — it just costs a Claude call.
+    """
 
     # Tier 1: Try Groq first if configured (free, fast)
     if settings.use_groq and settings.groq_api_key:
@@ -88,8 +99,11 @@ async def analyze_with_claude(
                 raise Exception(f"Claude API error: {response.status_code}")
 
             result = response.json()
-            tokens_used = result["usage"]["output_tokens"]
-            content = result["content"][0]["text"].strip()
+            content_list = result.get("content", [])
+            if not content_list:
+                raise Exception("Claude returned empty content array")
+            tokens_used = result.get("usage", {}).get("output_tokens", 0)
+            content = content_list[0].get("text", "").strip()
 
             # Strip markdown code fences if present
             if "```json" in content:

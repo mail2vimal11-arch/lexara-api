@@ -5,6 +5,11 @@
 
 const API_BASE = 'https://api.lexara.tech/v1';
 
+function getAuthHeader() {
+  const token = localStorage.getItem('pai_token');
+  return token ? `Bearer ${token}` : `Bearer `;
+}
+
 /* ── Nav toggle (mobile) ───────────────────────────────────── */
 const navToggle = document.querySelector('.nav-toggle');
 const navMenu   = document.querySelector('nav[aria-label="Main navigation"]');
@@ -32,6 +37,10 @@ if (clearBtn) {
     const uploadZoneEl = document.getElementById('upload-zone');
     if (uploadZoneEl) uploadZoneEl.classList.remove('upload-success');
     showToast('Cleared. Ready for a new contract.');
+    const negCta = document.getElementById('negotiation-cta');
+    if (negCta) negCta.style.display = 'none';
+    window._lastKeyRisks = [];
+    window._lastContractText = '';
   });
 }
 
@@ -98,6 +107,7 @@ tabs.forEach(btn => {
 });
 
 async function runAnalysis(tab, payload) {
+  window._lastContractText = payload.text;
   const key = cacheKey(tab, payload);
   if (cache[key]) {
     renderResult(tab, cache[key]);
@@ -111,16 +121,31 @@ async function runAnalysis(tab, payload) {
     <span>Analyzing contract…</span>
   </div>`;
 
+  const authHeader = getAuthHeader();
+  if (!authHeader) {
+    panel.innerHTML = `<div class="result-error" role="alert">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20" aria-hidden="true">
+        <circle cx="10" cy="10" r="8"/><path d="M10 6v4M10 14v.5"/>
+      </svg>
+      Please <a href="/procurement-intelligence.html" style="color:inherit;text-decoration:underline">sign in</a> to use contract analysis.
+    </div>`;
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/${tab}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('pai_token') || ''}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': getAuthHeader() },
       body:    JSON.stringify(payload),
     });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+      const detail = err.detail || `HTTP ${res.status}`;
+      if (res.status === 401 && detail.includes('expired')) {
+        throw new Error('Your session has expired. Please sign in again.');
+      }
+      throw new Error(detail);
     }
 
     const data = await res.json();
@@ -215,6 +240,15 @@ function renderRiskScore(d) {
 
 function renderKeyRisks(d) {
   const risks = d.key_risks || [];
+  // Store for Negotiation Simulator intake
+  window._lastKeyRisks = risks;
+  if (risks.length > 0) {
+    const negCta = document.getElementById('negotiation-cta');
+    if (negCta) {
+      document.getElementById('neg-risk-count').textContent = risks.length;
+      negCta.style.display = 'block';
+    }
+  }
   if (!risks.length) return `<p style="color:var(--text-muted)">No significant risks identified.</p>`;
 
   const items = risks.map(r => {
@@ -468,6 +502,7 @@ async function handleFileUpload(file) {
 
     const data = await res.json();
     textarea.value = data.text;
+    window._lastContractText = data.text;
     uploadZone.classList.add('upload-success');
     label.innerHTML = `<strong style="color:var(--low)">✓ ${escHtml(file.name)}</strong> — ${data.word_count.toLocaleString()} words extracted`;
     showToast(`File loaded — ${data.word_count.toLocaleString()} words ready to analyze`);
@@ -505,6 +540,7 @@ if (textarea) {
   hint.textContent = 'Load sample contract';
   hint.addEventListener('click', () => {
     textarea.value = SAMPLE;
+    window._lastContractText = SAMPLE;
     textarea.dispatchEvent(new Event('input'));
     showToast('Sample contract loaded. Click a tab to analyze.');
   });
@@ -567,4 +603,166 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') {} });
   });
+});
+
+/* ============================================================
+   Clause Negotiation Simulator — Phase 1 on-ramp
+   ============================================================ */
+
+const _negotiationData = {
+  party_type: null,
+  jurisdiction_code: 'ON',
+  contract_value_cad: null,
+  vendor_count_estimate: null,
+  fiscal_quarter_end_pressure: false,
+  non_negotiables: [],
+  tradeable_items: [],
+  clauses: [],
+  original_contract_text: '',
+};
+
+function openNegotiationIntake() {
+  _negotiationData.original_contract_text = window._lastContractText || '';
+  _negotiationData.non_negotiables = [];
+  _negotiationData.tradeable_items = [];
+  populateIntakeClauses();
+  const modal = document.getElementById('negotiation-intake-modal');
+  if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+}
+
+function closeNegotiationIntake() {
+  const modal = document.getElementById('negotiation-intake-modal');
+  if (modal) { modal.style.display = 'none'; document.body.style.overflow = ''; }
+}
+
+function selectPartyType(type) {
+  _negotiationData.party_type = type;
+  document.querySelectorAll('.neg-party-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById(`party-card-${type}`);
+  if (card) card.classList.add('selected');
+  const btn = document.getElementById('intake-submit-btn');
+  if (btn) btn.disabled = false;
+}
+
+function _inferClauseType(title) {
+  const t = (title || '').toLowerCase();
+  if (t.includes('liab')) return 'liability';
+  if (t.includes('ip') || t.includes('intellectual') || t.includes('ownership')) return 'ip_ownership';
+  if (t.includes('terminat')) return 'termination';
+  if (t.includes('payment') || t.includes('invoice')) return 'payment_terms';
+  if (t.includes('sla') || t.includes('service level') || t.includes('performance')) return 'sla';
+  if (t.includes('indemnif')) return 'indemnification';
+  if (t.includes('warrant')) return 'warranty';
+  if (t.includes('confidential') || t.includes('nda')) return 'confidentiality';
+  if (t.includes('accept')) return 'acceptance_criteria';
+  return 'other';
+}
+
+function _estimateExposure(severity, contractValue) {
+  const cv = contractValue || 1000000;
+  const rates = { critical: 0.6, high: 0.35, medium: 0.15, low: 0.05 };
+  return Math.round(cv * (rates[(severity || '').toLowerCase()] || 0.15));
+}
+
+function toggleNonNegotiable(clauseKey, checked) {
+  if (checked) { if (!_negotiationData.non_negotiables.includes(clauseKey)) _negotiationData.non_negotiables.push(clauseKey); }
+  else { _negotiationData.non_negotiables = _negotiationData.non_negotiables.filter(x => x !== clauseKey); }
+}
+
+function toggleTradeable(clauseKey, checked) {
+  if (checked) { if (!_negotiationData.tradeable_items.includes(clauseKey)) _negotiationData.tradeable_items.push(clauseKey); }
+  else { _negotiationData.tradeable_items = _negotiationData.tradeable_items.filter(x => x !== clauseKey); }
+}
+
+function populateIntakeClauses() {
+  const risks = window._lastKeyRisks || [];
+  const cv = parseFloat(document.getElementById('intake-contract-value')?.value) || null;
+
+  const nnContainer = document.getElementById('intake-nn-checklist');
+  const trContainer = document.getElementById('intake-tr-checklist');
+
+  if (!risks.length) {
+    const msg = '<p style="color:var(--text-muted);font-size:0.85rem;padding:12px 0">Run the Key Risks analysis first — identified risks will appear here.</p>';
+    if (nnContainer) nnContainer.innerHTML = msg;
+    if (trContainer) trContainer.innerHTML = msg;
+    return;
+  }
+
+  _negotiationData.clauses = risks.map(r => {
+    const key = (r.title || 'clause').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').substring(0, 50) || 'clause_' + Math.random().toString(36).substr(2,6);
+    return {
+      clause_key: key,
+      clause_title: r.title || 'Unnamed Clause',
+      original_text: r.description || '',
+      risk_severity: (r.severity || 'medium').toLowerCase(),
+      clause_type: _inferClauseType(r.title),
+      risk_exposure_cad: _estimateExposure(r.severity, cv),
+    };
+  });
+
+  const renderList = (prefix, onchangeFn) => _negotiationData.clauses.map((c, i) => {
+    const sevColor = {critical:'#f87171',high:'#fb923c',medium:'#fbbf24',low:'#4ade80'}[c.risk_severity] || '#fbbf24';
+    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <input type="checkbox" id="${prefix}-${i}" onchange="${onchangeFn}('${c.clause_key}',this.checked)"
+             style="margin-top:4px;accent-color:var(--gold);cursor:pointer">
+      <label for="${prefix}-${i}" style="flex:1;cursor:pointer">
+        <span style="color:var(--text-primary);font-size:0.88rem;font-weight:500">${escHtml(c.clause_title)}</span>
+        <span style="margin-left:8px;font-size:0.72rem;font-weight:600;padding:2px 7px;border-radius:4px;background:${sevColor}22;color:${sevColor}">${c.risk_severity}</span>
+        <p style="color:var(--text-muted);font-size:0.78rem;margin:3px 0 0;line-height:1.4">${escHtml((c.original_text||'').substring(0,90))}${c.original_text?.length > 90 ? '…' : ''}</p>
+      </label>
+    </div>`;
+  }).join('');
+
+  if (nnContainer) nnContainer.innerHTML = renderList('nn', 'toggleNonNegotiable');
+  if (trContainer) trContainer.innerHTML = renderList('tr', 'toggleTradeable');
+}
+
+async function startNegotiationSession() {
+  const token = localStorage.getItem('pai_token');
+  if (!token) { showToast('Please sign in to use the Negotiation Simulator.', 'warn'); return; }
+  if (!_negotiationData.party_type) { showToast('Please select your party type.', 'warn'); return; }
+
+  const cvEl  = document.getElementById('intake-contract-value');
+  const jurEl = document.getElementById('intake-jurisdiction');
+  const fqeEl = document.getElementById('intake-fqe-toggle');
+  const vcEl  = document.querySelector('input[name="vendor-count"]:checked');
+
+  _negotiationData.contract_value_cad          = cvEl  ? (parseFloat(cvEl.value) || null) : null;
+  _negotiationData.jurisdiction_code           = jurEl ? (jurEl.value || 'ON') : 'ON';
+  _negotiationData.fiscal_quarter_end_pressure = fqeEl ? fqeEl.checked : false;
+  _negotiationData.vendor_count_estimate       = vcEl  ? parseInt(vcEl.value) : null;
+
+  // Refresh exposure estimates with final contract value
+  _negotiationData.clauses = (_negotiationData.clauses || []).map(c => ({
+    ...c,
+    risk_exposure_cad: _estimateExposure(c.risk_severity, _negotiationData.contract_value_cad),
+  }));
+
+  const btn = document.getElementById('intake-submit-btn');
+  const origText = btn.textContent;
+  btn.textContent = 'Starting session…';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/negotiation/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(_negotiationData),
+    });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || `HTTP ${res.status}`); }
+    const data = await res.json();
+    window.location.href = `/negotiation-arena.html?session=${data.session_id}`;
+  } catch(e) {
+    showToast('Could not start session: ' + e.message, 'warn');
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
+}
+
+// Close modal on Escape or backdrop click
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeNegotiationIntake();
+});
+document.addEventListener('click', e => {
+  if (e.target && e.target.id === 'negotiation-intake-modal') closeNegotiationIntake();
 });

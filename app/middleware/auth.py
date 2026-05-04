@@ -19,31 +19,42 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     """Validate JWT for protected /v1 routes.
 
     Defense in depth: middleware validates the JWT signature so clearly invalid
-    tokens are rejected before reaching the route layer.  Full user lookup
+    tokens are rejected before reaching the route layer. Full user lookup
     (is_active check, DB query) still happens in get_current_user at route level.
     """
 
+    # Routes that don't require authentication (exact match)
     UNPROTECTED_ROUTES = {
         "/health",
+        "/status",
         "/docs",
         "/redoc",
         "/openapi.json",
         "/",
         "/v1/auth/register",
         "/v1/auth/login",
+        "/v1/plans",
+        "/v1/checkout",
+        "/v1/workbench/commodities",
+        "/v1/workbench/jurisdictions",
     }
+
+    # Route prefixes that don't require authentication (startswith match)
+    UNPROTECTED_PREFIXES = (
+        "/v1/negotiation/join/",
+    )
 
     async def dispatch(self, request: Request, call_next):
         """Process request."""
 
-        # Always pass through OPTIONS (CORS preflight) and Stripe webhook
         if request.method == "OPTIONS":
             return await call_next(request)
         if request.url.path in ("/v1/webhook", "/v1/webhooks/stripe"):
             return await call_next(request)
 
-        # Skip auth for public routes
         if request.url.path in self.UNPROTECTED_ROUTES:
+            return await call_next(request)
+        if any(request.url.path.startswith(p) for p in self.UNPROTECTED_PREFIXES):
             return await call_next(request)
 
         if request.url.path.startswith("/v1"):
@@ -53,6 +64,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
                 return JSONResponse(
                     status_code=401,
                     content={"error": "unauthorized", "message": "Invalid or missing Authorization header"},
+                    headers={"WWW-Authenticate": "Bearer"},
                 )
 
             # CA-008: validate JWT signature at middleware layer (defense in depth)

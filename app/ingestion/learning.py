@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.nlp.pipeline import extract_clauses, classify_clause, detect_risk, improve_clause
 from app.nlp.embeddings import embed_text
-from app.nlp.search import add_clause_to_index, search_similar_clauses
+from app.nlp.search import search_similar_clauses
 from app.models.clause import SOWClause
 from app.models.tender import Tender
 
@@ -62,10 +62,15 @@ def learn_from_tender(db: Session, tender: Tender) -> list[dict]:
         )
         db.add(clause)
 
-        # Add to live FAISS index
-        add_clause_to_index(clause_id, sentence, clause_type)
-
-        learned.append({"clause_id": clause_id, "clause_type": clause_type, "text": sentence[:100]})
+        # NOTE: FAISS indexing is intentionally deferred — the caller
+        # (pipeline.run_ingestion) adds to the index only after db.commit()
+        # succeeds, so DB and FAISS never diverge on a failed commit.
+        learned.append({
+            "clause_id": clause_id,
+            "clause_type": clause_type,
+            "text": sentence[:100],
+            "full_text": sentence,   # needed by pipeline for FAISS indexing
+        })
 
     logger.info(f"Learned {len(learned)} clauses from tender {tender.tender_id}")
     return learned

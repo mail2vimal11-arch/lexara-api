@@ -10,6 +10,13 @@ from app.config import settings
 from app.database.session import init_db, SessionLocal
 from app.routers import contracts, usage, health, upload, billing, procurement
 from app.routers import auth_routes, procurement_clause_routes, ingestion_routes, compare_routes
+from app.routers import workbench_routes
+from app.routers import portfolio_routes, bid_comparison_routes, dark_obligation_routes
+from app.routers import obligation_temporal_routes  # Feature 3: Obligation Matrix
+try:
+    from app.routers import negotiation_routes  # Feature 6
+except ImportError:
+    negotiation_routes = None  # not yet implemented
 from app.middleware.auth import APIKeyMiddleware
 from app.middleware.logging import logging_middleware
 
@@ -26,6 +33,12 @@ async def lifespan(app: FastAPI):
         init_db()
         from app.database.session import Base, engine
         from app.models import user, tender, clause, audit, billing  # noqa: F401
+        from app.models import jurisdiction, commodity, knowledge     # noqa: F401
+        from app.models import obligation_temporal                    # noqa: F401  # Feature 3
+        try:
+            from app.models import negotiation  # noqa: F401
+        except ImportError:
+            logger.warning("Negotiation models not yet available")
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Database initialized")
     except Exception as e:
@@ -45,6 +58,14 @@ async def lifespan(app: FastAPI):
         tender_seeded = seed_tenders(db)
         if tender_seeded:
             logger.info(f"✅ Seeded {tender_seeded} reference tenders")
+
+        try:
+            from app.services.knowledge_seed import seed_all_knowledge
+            knowledge_results = seed_all_knowledge(db)
+            if knowledge_results:
+                logger.info(f"✅ Knowledge DB seeded: {knowledge_results}")
+        except ImportError:
+            logger.warning("knowledge_seed module not yet available — skipping")
 
         from app.nlp.search import bootstrap_index_from_db
         bootstrap_index_from_db(db)
@@ -96,6 +117,17 @@ app.include_router(auth_routes.router, prefix="/v1")
 app.include_router(procurement_clause_routes.router, prefix="/v1/procurement")
 app.include_router(ingestion_routes.router, prefix="/v1/procurement")
 app.include_router(compare_routes.router, prefix="/v1/procurement")
+# Feature 2: SOW Workbench
+app.include_router(workbench_routes.router, prefix="/v1/workbench", tags=["SOW Workbench"])
+# Feature 6: Negotiation Simulator (router registered when module is available)
+if negotiation_routes is not None:
+    app.include_router(negotiation_routes.router, prefix="/v1/negotiation", tags=["Negotiation Simulator"])
+# Blast Radius engine: portfolio obligation index, N-bid stress matrix, dark-obligation detector
+app.include_router(portfolio_routes.router)
+app.include_router(bid_comparison_routes.router)
+app.include_router(dark_obligation_routes.router)
+# Feature 3: Obligation Matrix — temporal dependency graph
+app.include_router(obligation_temporal_routes.router, prefix="/v1/procurement", tags=["Obligation Matrix"])
 
 # Global Exception Handler
 @app.exception_handler(Exception)

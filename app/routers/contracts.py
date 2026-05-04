@@ -2,12 +2,15 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 from typing import Optional, List
 import logging
 from datetime import datetime
 import uuid
 
-from app.services.llm_service import analyze_with_claude  # CA-017: get_db removed — unused in this router
+from app.database.session import get_db
+from app.services.llm_service import analyze_with_claude
+from app.services.audit_service import log_action
 from app.security import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -44,7 +47,8 @@ class SummaryResponse(BaseModel):
 @router.post("/summary", response_model=SummaryResponse)
 async def get_summary(
     request: ContractRequest,
-    current_user=Depends(get_current_user),  # CA-017: db removed — not used in this router
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Tab 1 — Plain-English summary of the contract.
@@ -60,8 +64,12 @@ async def get_summary(
             mode="summary"
         )
         ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        aid = f"anal_{uuid.uuid4().hex[:12]}"
+        log_action(db, "CONTRACT_SUMMARY",
+                   {"analysis_id": aid, "tokens": result.get("tokens_used", 0), "ms": ms},
+                   user_id=str(current_user.id))
         return SummaryResponse(
-            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            analysis_id=aid,
             summary=result.get("summary", ""),
             contract_type=result.get("contract_type", request.contract_type),
             jurisdiction=result.get("jurisdiction", request.jurisdiction),
@@ -89,7 +97,8 @@ class RiskScoreResponse(BaseModel):
 @router.post("/risk-score", response_model=RiskScoreResponse)
 async def get_risk_score(
     request: ContractRequest,
-    current_user=Depends(get_current_user),  # CA-017: db removed — not used in this router
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Tab 2 — Quantified risk score 0–100 with category breakdown.
@@ -105,8 +114,12 @@ async def get_risk_score(
             mode="risk_score"
         )
         ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        aid = f"anal_{uuid.uuid4().hex[:12]}"
+        log_action(db, "CONTRACT_RISK_SCORE",
+                   {"analysis_id": aid, "score": result.get("overall_risk_score"), "ms": ms},
+                   user_id=str(current_user.id))
         return RiskScoreResponse(
-            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            analysis_id=aid,
             overall_risk_score=result.get("overall_risk_score", 50),
             risk_level=result.get("risk_level", "medium"),
             scores_by_category=result.get("scores_by_category", {}),
@@ -139,7 +152,8 @@ class KeyRisksResponse(BaseModel):
 @router.post("/key-risks", response_model=KeyRisksResponse)
 async def get_key_risks(
     request: ContractRequest,
-    current_user=Depends(get_current_user),  # CA-017: db removed — not used in this router
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Tab 3 — Detailed list of legal risks with severity and recommendations.
@@ -155,8 +169,12 @@ async def get_key_risks(
             mode="key_risks"
         )
         ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        aid = f"anal_{uuid.uuid4().hex[:12]}"
+        log_action(db, "CONTRACT_KEY_RISKS",
+                   {"analysis_id": aid, "count": len(result.get("key_risks", [])), "ms": ms},
+                   user_id=str(current_user.id))
         return KeyRisksResponse(
-            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            analysis_id=aid,
             key_risks=result.get("key_risks", []),
             tokens_used=result.get("tokens_used", 0),
             processing_time_ms=ms
@@ -184,7 +202,8 @@ class MissingClausesResponse(BaseModel):
 @router.post("/missing-clauses", response_model=MissingClausesResponse)
 async def get_missing_clauses(
     request: ContractRequest,
-    current_user=Depends(get_current_user),  # CA-017: db removed — not used in this router
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Tab 4 — Clauses that are absent but should be present.
@@ -200,8 +219,12 @@ async def get_missing_clauses(
             mode="missing_clauses"
         )
         ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        aid = f"anal_{uuid.uuid4().hex[:12]}"
+        log_action(db, "CONTRACT_MISSING_CLAUSES",
+                   {"analysis_id": aid, "count": len(result.get("missing_clauses", [])), "ms": ms},
+                   user_id=str(current_user.id))
         return MissingClausesResponse(
-            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            analysis_id=aid,
             missing_clauses=result.get("missing_clauses", []),
             tokens_used=result.get("tokens_used", 0),
             processing_time_ms=ms
@@ -232,7 +255,8 @@ class ExtractClausesResponse(BaseModel):
 @router.post("/extract-clauses", response_model=ExtractClausesResponse)
 async def extract_clauses(
     request: ContractRequest,
-    current_user=Depends(get_current_user),  # CA-017: db removed — not used in this router
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Tab 5 — Extract and categorize existing clauses.
@@ -248,8 +272,12 @@ async def extract_clauses(
             mode="extract_clauses"
         )
         ms = int((datetime.utcnow() - start).total_seconds() * 1000)
+        aid = f"anal_{uuid.uuid4().hex[:12]}"
+        log_action(db, "CONTRACT_EXTRACT_CLAUSES",
+                   {"analysis_id": aid, "count": len(result.get("clauses", [])), "ms": ms},
+                   user_id=str(current_user.id))
         return ExtractClausesResponse(
-            analysis_id=f"anal_{uuid.uuid4().hex[:12]}",
+            analysis_id=aid,
             clauses=result.get("clauses", []),
             tokens_used=result.get("tokens_used", 0),
             processing_time_ms=ms

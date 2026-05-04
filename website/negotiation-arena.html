@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lexara — Clause Negotiation Arena</title>
+<style>
+  /* ── Reset & Tokens ────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:          #0d1117;
+    --surface:     #161b22;
+    --surface2:    #21262d;
+    --surface3:    #30363d;
+    --border:      #30363d;
+    --border2:     #444c56;
+    --text:        #e6edf3;
+    --text2:       #8b949e;
+    --text3:       #6e7681;
+    --blue:        #388bfd;
+    --blue-dim:    #1f3358;
+    --green:       #3fb950;
+    --green-dim:   #1a3626;
+    --yellow:      #d29922;
+    --yellow-dim:  #362808;
+    --red:         #f85149;
+    --red-dim:     #3b1219;
+    --purple:      #a371f7;
+    --purple-dim:  #271052;
+    --orange:      #f0883e;
+    --orange-dim:  #3d1d00;
+    --radius:      8px;
+    --radius-sm:   4px;
+    --shadow:      0 8px 24px rgba(0,0,0,.4);
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; line-height: 1.5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Top bar ──────────────────────────────────────────────── */
+  #topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 16px; height: 52px; background: var(--surface);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  #topbar .logo { font-weight: 700; font-size: 16px; color: var(--text); letter-spacing: -.3px; }
+  #topbar .logo span { color: var(--blue); }
+  #session-badge { background: var(--blue-dim); color: var(--blue); padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  #status-badge { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+  .status-active   { background: var(--green-dim); color: var(--green); }
+  .status-completed{ background: var(--surface3); color: var(--text2); }
+  .status-stalemate{ background: var(--yellow-dim); color: var(--yellow); }
+  #topbar .sep { flex: 1; }
+  #party-type-label { color: var(--text2); font-size: 12px; }
+  #topbar button { padding: 6px 14px; border-radius: var(--radius-sm); border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity .15s; }
+  #topbar button:hover { opacity: .85; }
+  #btn-invite   { background: var(--surface3); color: var(--text); border: 1px solid var(--border2); }
+  #btn-export   { background: var(--blue); color: #fff; }
+  #btn-scenario { background: var(--purple-dim); color: var(--purple); border: 1px solid var(--purple); }
+
+  /* ── 3-column layout ──────────────────────────────────────── */
+  #arena {
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Left: Clause Ledger ──────────────────────────────────── */
+  #clause-ledger {
+    background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #clause-ledger h3 {
+    padding: 12px 14px 10px; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .8px; color: var(--text3);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  #clause-list { overflow-y: auto; flex: 1; padding: 6px 0; }
+  .clause-item {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 10px 14px; cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background .1s;
+  }
+  .clause-item:hover    { background: var(--surface2); }
+  .clause-item.selected { background: var(--surface2); border-left-color: var(--blue); }
+  .clause-item .ci-top  { display: flex; align-items: center; gap: 6px; }
+  .clause-item .ci-name { font-weight: 600; font-size: 13px; flex: 1; }
+  .clause-item .ci-state { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; text-transform: uppercase; letter-spacing: .3px; }
+  .state-pending        { background: var(--surface3);     color: var(--text2); }
+  .state-your_move      { background: var(--blue-dim);     color: var(--blue); }
+  .state-opponent_move  { background: var(--yellow-dim);   color: var(--yellow); }
+  .state-agreed         { background: var(--green-dim);    color: var(--green); }
+  .state-stalemate      { background: var(--red-dim);      color: var(--red); }
+  .state-trade_pending  { background: var(--purple-dim);   color: var(--purple); }
+  .state-withdrawn      { background: var(--surface3);     color: var(--text3); text-decoration: line-through; }
+  .clause-item .ci-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tag-nn   { font-size: 10px; background: var(--red-dim);    color: var(--red);    padding: 1px 5px; border-radius: 3px; }
+  .tag-tr   { font-size: 10px; background: var(--orange-dim); color: var(--orange); padding: 1px 5px; border-radius: 3px; }
+  .clause-item .ci-risk { font-size: 11px; color: var(--text3); }
+
+  /* Progress bar at bottom of ledger */
+  #ledger-progress { padding: 12px 14px; border-top: 1px solid var(--border); flex-shrink: 0; }
+  #ledger-progress .lp-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text2); margin-bottom: 5px; }
+  #ledger-bar-track { background: var(--surface3); border-radius: 4px; height: 6px; overflow: hidden; }
+  #ledger-bar-fill  { height: 100%; background: var(--green); border-radius: 4px; transition: width .4s; }
+  #net-value-summary { margin-top: 8px; text-align: center; font-size: 12px; color: var(--text2); }
+  #net-value-summary span { font-weight: 700; }
+
+  /* ── Centre: Proposal Workspace ───────────────────────────── */
+  #workspace {
+    display: flex; flex-direction: column; overflow: hidden;
+    background: var(--bg);
+  }
+  #workspace-header {
+    padding: 14px 18px 12px; border-bottom: 1px solid var(--border);
+    background: var(--surface); flex-shrink: 0;
+  }
+  #ws-clause-type { font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--text3); margin-bottom: 4px; }
+  #ws-clause-name { font-size: 17px; font-weight: 700; }
+  #ws-clause-risk { font-size: 12px; color: var(--text2); margin-top: 3px; }
+
+  #workspace-body { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* Clause text blocks */
+  .ws-section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--text3); margin-bottom: 6px; font-weight: 700; }
+  .text-block {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; font-size: 13px; line-height: 1.7; color: var(--text2);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .text-block.highlight { border-color: var(--blue); color: var(--text); }
+  textarea.text-block {
+    resize: vertical; min-height: 100px; color: var(--text);
+    background: var(--surface); font-family: inherit; font-size: 13px;
+    outline: none; width: 100%;
+  }
+  textarea.text-block:focus { border-color: var(--blue); }
+
+  /* Round history */
+  #round-history { display: flex; flex-direction: column; gap: 8px; }
+  .round-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 13px;
+  }
+  .round-card .rc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .rc-actor { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 10px; }
+  .rc-actor.user     { background: var(--blue-dim); color: var(--blue); }
+  .rc-actor.opponent { background: var(--yellow-dim); color: var(--yellow); }
+  .rc-action { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .3px; }
+  .rc-time   { font-size: 11px; color: var(--text3); margin-left: auto; }
+  .rc-text   { font-size: 12px; color: var(--text2); font-style: italic; line-height: 1.6; }
+  .rc-response { font-size: 12px; color: var(--text); margin-top: 5px; padding: 6px 10px; background: var(--surface2); border-radius: 4px; border-left: 3px solid var(--text3); }
+  .rc-response.accept { border-left-color: var(--green); }
+  .rc-response.reject { border-left-color: var(--red); }
+  .rc-response.counter{ border-left-color: var(--yellow); }
+  .rc-response.trade  { border-left-color: var(--purple); }
+
+  /* Action bar */
+  #action-bar {
+    padding: 12px 18px; border-top: 1px solid var(--border);
+    background: var(--surface); flex-shrink: 0;
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  }
+  #action-bar button {
+    padding: 7px 16px; border-radius: var(--radius-sm); border: none;
+    cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity .15s;
+  }
+  #action-bar button:disabled { opacity: .35; cursor: not-allowed; }
+  #action-bar button:not(:disabled):hover { opacity: .85; }
+  #btn-propose { background: var(--blue); color: #fff; }
+  #btn-accept  { background: var(--green); color: #000; }
+  #btn-reject  { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+  #btn-counter { background: var(--yellow-dim); color: var(--yellow); border: 1px solid var(--yellow); }
+  #btn-trade   { background: var(--purple-dim); color: var(--purple); border: 1px solid var(--purple); }
+  #action-hint { font-size: 12px; color: var(--text3); margin-left: auto; font-style: italic; }
+
+  /* Empty state */
+  #ws-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text3); gap: 8px; }
+  #ws-empty .icon { font-size: 40px; }
+  #ws-empty p { font-size: 14px; }
+
+  /* ── Right: Intelligence Panel ────────────────────────────── */
+  #intel-panel {
+    background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #intel-panel h3 {
+    padding: 12px 14px 10px; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .8px; color: var(--text3);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  #intel-body { overflow-y: auto; flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* BATNA card */
+  .ip-card { background: var(--surface2); border-radius: var(--radius); border: 1px solid var(--border); padding: 12px; }
+  .ip-card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text3); margin-bottom: 10px; }
+
+  .batna-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .batna-label { font-size: 12px; width: 70px; color: var(--text2); }
+  .batna-track { flex: 1; background: var(--surface3); border-radius: 4px; height: 8px; overflow: hidden; }
+  .batna-fill   { height: 100%; border-radius: 4px; transition: width .5s; }
+  .batna-fill.user     { background: var(--blue); }
+  .batna-fill.opponent { background: var(--yellow); }
+  .batna-val { font-size: 12px; font-weight: 700; width: 32px; text-align: right; }
+  #batna-leverage { margin-top: 6px; font-size: 12px; }
+  #batna-leverage span { font-weight: 700; }
+
+  /* Strategic advice */
+  #advice-list { display: flex; flex-direction: column; gap: 6px; }
+  .advice-item { display: flex; gap: 6px; font-size: 12px; color: var(--text2); }
+  .advice-item::before { content: "→"; color: var(--blue); font-weight: 700; flex-shrink: 0; }
+
+  /* Concession ledger */
+  .concession-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .concession-row:last-child { border-bottom: none; }
+  .conc-dir { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+  .conc-gave   { background: var(--red-dim);   color: var(--red); }
+  .conc-gained { background: var(--green-dim); color: var(--green); }
+  .conc-desc { font-size: 12px; color: var(--text2); flex: 1; margin: 0 8px; }
+  .conc-val  { font-size: 12px; font-weight: 700; color: var(--text); }
+  .ledger-net { display: flex; justify-content: space-between; padding: 8px 0 0; font-size: 13px; font-weight: 700; border-top: 1px solid var(--border2); margin-top: 4px; }
+  .ledger-net .pos { color: var(--green); }
+  .ledger-net .neg { color: var(--red); }
+
+  /* Jurisprudence */
+  .juris-card { background: var(--surface3); border-radius: var(--radius-sm); padding: 10px; }
+  .juris-case { font-size: 12px; font-weight: 700; color: var(--text); }
+  .juris-cite { font-size: 11px; color: var(--purple); margin: 2px 0; }
+  .juris-principle { font-size: 12px; color: var(--text2); margin-top: 4px; line-height: 1.5; }
+
+  /* Loader overlay */
+  #loader {
+    position: fixed; inset: 0; background: rgba(0,0,0,.65);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999; flex-direction: column; gap: 12px; display: none;
+  }
+  #loader.active { display: flex; }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loader p { color: var(--text2); font-size: 14px; }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 20px; right: 20px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); padding: 10px 16px; border-radius: var(--radius);
+    font-size: 13px; box-shadow: var(--shadow);
+    opacity: 0; transform: translateY(8px);
+    transition: opacity .2s, transform .2s;
+    z-index: 9998; max-width: 300px;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.success { border-color: var(--green); }
+  #toast.error   { border-color: var(--red); }
+
+  /* Modal (trade + scenario + invite) */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    display: none; align-items: center; justify-content: center;
+    z-index: 8000;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 12px; padding: 24px; width: 480px; max-width: 95vw;
+    max-height: 85vh; overflow-y: auto; box-shadow: var(--shadow);
+  }
+  .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .modal label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 4px; margin-top: 12px; }
+  .modal select, .modal textarea, .modal input {
+    width: 100%; padding: 8px 10px; background: var(--surface2);
+    border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 13px; font-family: inherit; outline: none;
+  }
+  .modal select:focus, .modal textarea:focus, .modal input:focus { border-color: var(--blue); }
+  .modal textarea { resize: vertical; min-height: 80px; }
+  .modal .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+  .modal .modal-footer button { padding: 8px 18px; border-radius: var(--radius-sm); border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .btn-cancel { background: var(--surface3); color: var(--text); }
+  .btn-primary { background: var(--blue); color: #fff; }
+
+  /* Scenario result */
+  #scenario-result { margin-top: 14px; display: none; }
+  #scenario-result h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--yellow); }
+  .scen-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .scen-item:last-child { border-bottom: none; }
+  .scen-item span:last-child { font-weight: 700; color: var(--red); }
+
+  /* Export modal textarea */
+  #export-text { min-height: 260px; font-family: "SF Mono", "Fira Code", monospace; font-size: 12px; }
+  #copy-export  { cursor: pointer; }
+
+  /* Invite link display */
+  #invite-link-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+  #invite-link-row input { flex: 1; }
+  #invite-link-row button { flex-shrink: 0; padding: 7px 12px; background: var(--surface3); color: var(--text); border: 1px solid var(--border2); border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; font-weight: 600; }
+
+  /* Scroll customisation */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    #arena { grid-template-columns: 220px 1fr; }
+    #intel-panel { display: none; }
+  }
+  @media (max-width: 600px) {
+    #arena { grid-template-columns: 1fr; }
+    #clause-ledger { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Top bar ──────────────────────────────────────────────── -->
+<header id="topbar">
+  <div class="logo">Lexa<span>ra</span></div>
+  <div id="session-badge">Loading…</div>
+  <div id="status-badge" class="status-active">Active</div>
+  <span id="party-type-label"></span>
+  <div class="sep"></div>
+  <button id="btn-scenario">⚡ Simulate Risk</button>
+  <button id="btn-invite">🔗 Invite Party</button>
+  <button id="btn-export">↗ Export Contract</button>
+</header>
+
+<!-- ── 3-column arena ──────────────────────────────────────── -->
+<div id="arena">
+
+  <!-- LEFT: Clause Ledger -->
+  <aside id="clause-ledger">
+    <h3>Clause Ledger</h3>
+    <div id="clause-list">
+      <div style="padding:16px;color:var(--text3);text-align:center">Loading clauses…</div>
+    </div>
+    <div id="ledger-progress">
+      <div class="lp-label">
+        <span>Agreed</span>
+        <span id="agreed-ratio">0 / 0</span>
+      </div>
+      <div id="ledger-bar-track"><div id="ledger-bar-fill" style="width:0%"></div></div>
+      <div id="net-value-summary">Net position: <span id="net-val">–</span></div>
+    </div>
+  </aside>
+
+  <!-- CENTRE: Proposal Workspace -->
+  <main id="workspace">
+    <!-- shown when a clause is selected -->
+    <div id="ws-content" style="display:none;flex-direction:column;height:100%">
+      <div id="workspace-header">
+        <div id="ws-clause-type"></div>
+        <div id="ws-clause-name"></div>
+        <div id="ws-clause-risk"></div>
+      </div>
+      <div id="workspace-body">
+        <div>
+          <div class="ws-section-label">Original Text</div>
+          <div id="original-text" class="text-block"></div>
+        </div>
+        <div id="proposed-section">
+          <div class="ws-section-label">Your Proposed Revision</div>
+          <textarea id="proposed-text" class="text-block" placeholder="Type your revised clause language here…" rows="5"></textarea>
+        </div>
+        <div id="history-section">
+          <div class="ws-section-label">Round History</div>
+          <div id="round-history"></div>
+        </div>
+      </div>
+      <div id="action-bar">
+        <button id="btn-propose">Propose Revision</button>
+        <button id="btn-accept"  disabled>Accept</button>
+        <button id="btn-reject"  disabled>Reject</button>
+        <button id="btn-counter" disabled>Counter</button>
+        <button id="btn-trade"   disabled>Trade Offer</button>
+        <span id="action-hint">Select an action</span>
+      </div>
+    </div>
+    <!-- empty state -->
+    <div id="ws-empty">
+      <div class="icon">⚖️</div>
+      <p>Select a clause from the ledger to begin</p>
+    </div>
+  </main>
+
+  <!-- RIGHT: Intelligence Panel -->
+  <aside id="intel-panel">
+    <h3>AI Intelligence</h3>
+    <div id="intel-body">
+
+      <!-- BATNA -->
+      <div class="ip-card" id="batna-card">
+        <div class="ip-card-title">BATNA Scores</div>
+        <div class="batna-row">
+          <span class="batna-label">Your BATNA</span>
+          <div class="batna-track"><div class="batna-fill user" id="batna-user-bar" style="width:50%"></div></div>
+          <span class="batna-val" id="batna-user-val">—</span>
+        </div>
+        <div class="batna-row">
+          <span class="batna-label">Opponent</span>
+          <div class="batna-track"><div class="batna-fill opponent" id="batna-opp-bar" style="width:50%"></div></div>
+          <span class="batna-val" id="batna-opp-val">—</span>
+        </div>
+        <div id="batna-leverage">Leverage: <span id="leverage-label">—</span></div>
+      </div>
+
+      <!-- Strategic advice -->
+      <div class="ip-card" id="advice-card">
+        <div class="ip-card-title">Strategic Advice</div>
+        <div id="advice-list">
+          <div class="advice-item" style="color:var(--text3)">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Concession ledger -->
+      <div class="ip-card" id="conc-card">
+        <div class="ip-card-title">Concession Ledger</div>
+        <div id="conc-list">
+          <div style="color:var(--text3);font-size:12px">No concessions yet</div>
+        </div>
+        <div class="ledger-net" id="ledger-net" style="display:none">
+          <span>Net value</span>
+          <span id="ledger-net-val">–</span>
+        </div>
+      </div>
+
+      <!-- Jurisprudence -->
+      <div class="ip-card" id="juris-card">
+        <div class="ip-card-title">Canadian Jurisprudence</div>
+        <div id="juris-body">
+          <div style="color:var(--text3);font-size:12px">Select a clause to see relevant cases</div>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+</div>
+
+<!-- ── Loader ─────────────────────────────────────────────── -->
+<div id="loader"><div class="spinner"></div><p id="loader-msg">Loading session…</p></div>
+
+<!-- ── Toast ──────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ── Trade Modal ────────────────────────────────────────── -->
+<div class="modal-overlay" id="trade-modal">
+  <div class="modal">
+    <h2>🤝 Cross-Clause Trade Offer</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:4px">Offer to concede on one clause in exchange for a concession on another.</p>
+    <label>Give: clause you will concede</label>
+    <select id="trade-give"></select>
+    <label>Gain: clause you want opponent to concede</label>
+    <select id="trade-gain"></select>
+    <label>Your concession language (give clause)</label>
+    <textarea id="trade-give-text" placeholder="Revised text for the clause you are giving up on…"></textarea>
+    <label>Desired language (gain clause)</label>
+    <textarea id="trade-gain-text" placeholder="Revised text you want on the clause you are gaining…"></textarea>
+    <label>Note to opponent (optional)</label>
+    <textarea id="trade-note" placeholder="Explain the rationale…" rows="2"></textarea>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('trade-modal')">Cancel</button>
+      <button class="btn-primary" id="btn-submit-trade">Send Trade Offer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Scenario Modal ─────────────────────────────────────── -->
+<div class="modal-overlay" id="scenario-modal">
+  <div class="modal">
+    <h2>⚡ Post-Signature Risk Simulator</h2>
+    <p style="font-size:13px;color:var(--text2)">Simulate what happens if a clause dispute escalates after signing.</p>
+    <label>Scenario to simulate</label>
+    <select id="scenario-type">
+      <option value="liability_cap">Liability Cap — Exceeded in production incident</option>
+      <option value="termination_for_convenience">Termination for Convenience — Disputed</option>
+      <option value="ip_ownership">IP Ownership — Vendor retains derivative works</option>
+      <option value="payment_terms">Payment Terms — Prompt Payment Act violation</option>
+      <option value="sla_breach">SLA Breach — Cascade into liquidated damages</option>
+      <option value="acceptance_criteria">Acceptance Criteria — Disputed UAT sign-off</option>
+    </select>
+    <label>Clause text to stress-test (optional override)</label>
+    <textarea id="scenario-clause-text" placeholder="Leave blank to use current agreed language…" rows="4"></textarea>
+    <div id="scenario-result">
+      <h4>Simulation Results</h4>
+      <div id="scenario-items"></div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text2)" id="scenario-prevention"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('scenario-modal')">Close</button>
+      <button class="btn-primary" id="btn-run-scenario">Run Simulation</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Invite Modal ───────────────────────────────────────── -->
+<div class="modal-overlay" id="invite-modal">
+  <div class="modal">
+    <h2>🔗 Invite Opposing Party</h2>
+    <p style="font-size:13px;color:var(--text2)">Generate a secure 48-hour link for the opposing party to join this negotiation session.</p>
+    <div id="invite-link-row" style="display:none">
+      <input type="text" id="invite-link-input" readonly />
+      <button id="copy-invite">Copy</button>
+    </div>
+    <p id="invite-status" style="font-size:12px;color:var(--text3);margin-top:8px"></p>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('invite-modal')">Close</button>
+      <button class="btn-primary" id="btn-gen-invite">Generate Invite Link</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Export Modal ───────────────────────────────────────── -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal" style="width:600px">
+    <h2>↗ Export Final Contract</h2>
+    <textarea id="export-text" class="text-block" readonly></textarea>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('export-modal')">Close</button>
+      <button class="btn-primary" id="copy-export">Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Config ────────────────────────────────────────────────── */
+const API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ? "http://localhost:8000/v1"
+  : "https://api.lexara.ca/v1";
+
+/* ── State ─────────────────────────────────────────────────── */
+let sessionId   = null;
+let sessionData = null;    // full session from GET /v1/negotiation/{id}
+let clauses     = [];      // NegotiationClause[]
+let selectedCid = null;    // currently selected clause id
+let batnaData   = null;
+let ledgerData  = null;
+let authToken   = localStorage.getItem("lexara_token") || "";
+
+/* ── Helpers ───────────────────────────────────────────────── */
+function setLoader(show, msg = "Processing…") {
+  document.getElementById("loader").classList.toggle("active", show);
+  document.getElementById("loader-msg").textContent = msg;
+}
+function toast(msg, type = "info") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "show " + (type === "success" ? "success" : type === "error" ? "error" : "");
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.classList.remove("show"); }, 3200);
+}
+function openModal(id)  { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+function fmtCad(v) {
+  if (v == null || v === 0) return "—";
+  const abs = Math.abs(v);
+  const s = abs >= 1e6 ? `$${(abs/1e6).toFixed(1)}M` : abs >= 1e3 ? `$${(abs/1e3).toFixed(0)}K` : `$${abs}`;
+  return v < 0 ? `-${s}` : s;
+}
+function fmtTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/* ── Auth header ───────────────────────────────────────────── */
+function headers() {
+  return { "Content-Type": "application/json", "Authorization": `Bearer ${authToken}` };
+}
+
+/* ── API calls ─────────────────────────────────────────────── */
+async function apiGet(path) {
+  const r = await fetch(`${API_BASE}${path}`, { headers: headers() });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.detail || e.message || `HTTP ${r.status}`);
+  }
+  return r.json();
+}
+async function apiPost(path, body) {
+  const r = await fetch(`${API_BASE}${path}`, { method: "POST", headers: headers(), body: JSON.stringify(body) });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.detail || e.message || `HTTP ${r.status}`);
+  }
+  return r.json();
+}
+
+/* ── Session bootstrap ─────────────────────────────────────── */
+async function loadSession() {
+  setLoader(true, "Loading session…");
+  try {
+    const params = new URLSearchParams(window.location.search);
+    sessionId = params.get("session");
+    if (!sessionId) { renderError("No session ID in URL — please return to the contract analysis page and start a new negotiation."); return; }
+
+    [sessionData, batnaData, ledgerData] = await Promise.all([
+      apiGet(`/negotiation/${sessionId}`),
+      apiGet(`/negotiation/${sessionId}/batna`),
+      apiGet(`/negotiation/${sessionId}/ledger`),
+    ]);
+
+    clauses = sessionData.clauses || [];
+    renderTopbar();
+    renderClauseLedger();
+    renderBatna();
+    renderLedger();
+    renderLedgerProgress();
+  } catch(e) {
+    renderError(e.message);
+  } finally {
+    setLoader(false);
+  }
+}
+
+function renderError(msg) {
+  document.getElementById("clause-list").innerHTML =
+    `<div style="padding:16px;color:var(--red);font-size:13px">${msg}</div>`;
+  document.getElementById("ws-empty").querySelector("p").textContent = msg;
+}
+
+/* ── Top bar ───────────────────────────────────────────────── */
+function renderTopbar() {
+  document.getElementById("session-badge").textContent = `Session #${sessionId.slice(0,8)}`;
+  const sb = document.getElementById("status-badge");
+  const s = sessionData.status || "active";
+  sb.textContent = s.replace(/_/g, " ");
+  sb.className = "status-" + (s === "active" ? "active" : s === "completed" ? "completed" : "stalemate");
+  document.getElementById("party-type-label").textContent = sessionData.party_type
+    ? `You: ${sessionData.party_type.replace(/_/g," ")}` : "";
+}
+
+/* ── Clause Ledger ─────────────────────────────────────────── */
+function renderClauseLedger() {
+  const list = document.getElementById("clause-list");
+  if (!clauses.length) {
+    list.innerHTML = '<div style="padding:16px;color:var(--text3);text-align:center">No clauses found</div>';
+    return;
+  }
+  list.innerHTML = clauses.map(c => {
+    const tags = [
+      c.is_non_negotiable ? '<span class="tag-nn">NON-NEG</span>' : "",
+      c.is_tradeable       ? '<span class="tag-tr">TRADEABLE</span>' : "",
+    ].filter(Boolean).join("");
+    const risk = c.risk_exposure_cad ? `<span class="ci-risk">Risk: ${fmtCad(c.risk_exposure_cad)}</span>` : "";
+    return `<div class="clause-item" data-id="${c.id}" onclick="selectClause(${c.id})">
+      <div class="ci-top">
+        <span class="ci-name">${c.clause_type.replace(/_/g," ")}</span>
+        <span class="ci-state state-${c.state}">${c.state.replace(/_/g," ")}</span>
+      </div>
+      ${tags ? `<div class="ci-tags">${tags}</div>` : ""}
+      ${risk}
+    </div>`;
+  }).join("");
+}
+
+function renderLedgerProgress() {
+  const total   = clauses.length;
+  const agreed  = clauses.filter(c => c.state === "agreed").length;
+  const pct     = total ? Math.round(agreed / total * 100) : 0;
+  document.getElementById("agreed-ratio").textContent = `${agreed} / ${total}`;
+  document.getElementById("ledger-bar-fill").style.width = pct + "%";
+  if (ledgerData) {
+    const net = (ledgerData.total_gained_cad || 0) - (ledgerData.total_gave_cad || 0);
+    const el  = document.getElementById("net-val");
+    el.textContent = fmtCad(Math.abs(net));
+    el.style.color = net >= 0 ? "var(--green)" : "var(--red)";
+    document.getElementById("net-value-summary").innerHTML =
+      `Net position: <span id="net-val" style="color:${net>=0?"var(--green)":"var(--red)"}">${net>=0?"+":"-"}${fmtCad(Math.abs(net))}</span>`;
+  }
+}
+
+/* ── Select clause ─────────────────────────────────────────── */
+function selectClause(cid) {
+  selectedCid = cid;
+  document.querySelectorAll(".clause-item").forEach(el =>
+    el.classList.toggle("selected", parseInt(el.dataset.id) === cid));
+
+  const c = clauses.find(x => x.id === cid);
+  if (!c) return;
+
+  document.getElementById("ws-empty").style.display = "none";
+  const wc = document.getElementById("ws-content");
+  wc.style.display = "flex";
+
+  document.getElementById("ws-clause-type").textContent = c.clause_type.replace(/_/g, " ").toUpperCase();
+  document.getElementById("ws-clause-name").textContent = c.clause_key || c.clause_type.replace(/_/g, " ");
+  document.getElementById("ws-clause-risk").textContent = c.risk_exposure_cad
+    ? `Estimated risk exposure: ${fmtCad(c.risk_exposure_cad)}` : "";
+
+  document.getElementById("original-text").textContent = c.original_text || "—";
+  document.getElementById("proposed-text").value = c.proposed_text || c.original_text || "";
+
+  renderRoundHistory(c);
+  updateActionBar(c);
+  renderJurisprudence(c.clause_type);
+}
+
+function renderRoundHistory(c) {
+  const rounds = c.rounds || [];
+  const el = document.getElementById("round-history");
+  if (!rounds.length) { el.innerHTML = '<div style="color:var(--text3);font-size:12px">No rounds yet — make the first move.</div>'; return; }
+  el.innerHTML = rounds.map(r => {
+    const cls = r.action === "accept" ? "accept" : r.action === "reject" ? "reject" : r.action.startsWith("trade") ? "trade" : "counter";
+    return `<div class="round-card">
+      <div class="rc-header">
+        <span class="rc-actor ${r.actor}">${r.actor === "user" ? "You" : "Opponent"}</span>
+        <span class="rc-action">${r.action.replace(/_/g," ")}</span>
+        <span class="rc-time">${fmtTime(r.created_at)}</span>
+      </div>
+      ${r.proposed_text ? `<div class="rc-text">"${r.proposed_text.slice(0,200)}${r.proposed_text.length>200?"…":""}"</div>` : ""}
+      ${r.response_text ? `<div class="rc-response ${cls}">${r.response_text}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function updateActionBar(c) {
+  const s = c.state;
+  const propose = document.getElementById("btn-propose");
+  const accept  = document.getElementById("btn-accept");
+  const reject  = document.getElementById("btn-reject");
+  const counter = document.getElementById("btn-counter");
+  const trade   = document.getElementById("btn-trade");
+  const hint    = document.getElementById("action-hint");
+
+  // Reset
+  [propose, accept, reject, counter, trade].forEach(b => b.disabled = true);
+
+  if (s === "agreed")    { hint.textContent = "✅ Agreed"; return; }
+  if (s === "withdrawn") { hint.textContent = "Clause withdrawn"; return; }
+  if (s === "stalemate") {
+    trade.disabled = false;
+    hint.textContent = "Stalemate — try a trade offer";
+    return;
+  }
+  if (s === "pending" || s === "your_move") {
+    propose.disabled = false;
+    trade.disabled   = false;
+    hint.textContent = "Propose your revision";
+    return;
+  }
+  if (s === "opponent_move" || s === "trade_pending") {
+    accept.disabled  = false;
+    reject.disabled  = false;
+    counter.disabled = false;
+    trade.disabled   = false;
+    hint.textContent = "Review opponent's position";
+    return;
+  }
+  hint.textContent = "—";
+}
+
+/* ── Propose ───────────────────────────────────────────────── */
+document.getElementById("btn-propose").addEventListener("click", async () => {
+  const text = document.getElementById("proposed-text").value.trim();
+  if (!text) { toast("Enter your proposed revision first", "error"); return; }
+  setLoader(true, "Sending proposal to opponent AI…");
+  try {
+    const res = await apiPost(`/negotiation/${sessionId}/propose`, {
+      clause_id:     selectedCid,
+      proposed_text: text,
+    });
+    toast(res.opponent_action ? `Opponent: ${res.opponent_action}` : "Proposal sent", "success");
+    await refreshSession();
+  } catch(e) {
+    toast(e.message, "error");
+  } finally {
+    setLoader(false);
+  }
+});
+
+/* ── Accept ────────────────────────────────────────────────── */
+document.getElementById("btn-accept").addEventListener("click", async () => {
+  setLoader(true, "Accepting…");
+  try {
+    await apiPost(`/negotiation/${sessionId}/respond`, { clause_id: selectedCid, action: "accept" });
+    toast("Clause agreed ✅", "success");
+    await refreshSession();
+  } catch(e) {
+    toast(e.message, "error");
+  } finally {
+    setLoader(false);
+  }
+});
+
+/* ── Reject ────────────────────────────────────────────────── */
+document.getElementById("btn-reject").addEventListener("click", async () => {
+  setLoader(true, "Rejecting…");
+  try {
+    await apiPost(`/negotiation/${sessionId}/respond`, { clause_id: selectedCid, action: "reject" });
+    toast("Position rejected", "success");
+    await refreshSession();
+  } catch(e) {
+    toast(e.message, "error");
+  } finally {
+    setLoader(false);
+  }
+});
+
+/* ── Counter ───────────────────────────────────────────────── */
+document.getElementById("btn-counter").addEventListener("click", async () => {
+  const text = document.getElementById("proposed-text").value.trim();
+  if (!text) { toast("Enter your counter-proposal text first", "error"); return; }
+  setLoader(true, "Sending counter…");
+  try {
+    const res = await apiPost(`/negotiation/${sessionId}/respond`, {
+      clause_id:    selectedCid,
+      action:       "counter",
+      counter_text: text,
+    });
+    toast(res.opponent_action ? `Opponent: ${res.opponent_action}` : "Counter sent", "success");
+    await refreshSession();
+  } catch(e) {
+    toast(e.message, "error");
+  } finally {
+    setLoader(false);
+  }
+});
+
+/* ── Trade ─────────────────────────────────────────────────── */
+document.getElementById("btn-trade").addEventListener("click", () => {
+  populateTradeDropdowns();
+  openModal("trade-modal");
+});
+
+function populateTradeDropdowns() {
+  const opts = clauses
+    .filter(c => c.state !== "agreed" && c.state !== "withdrawn")
+    .map(c => `<option value="${c.id}">${c.clause_type.replace(/_/g," ")}</option>`)
+    .join("");
+  document.getElementById("trade-give").innerHTML = opts;
+  document.getElementById("trade-gain").innerHTML = opts;
+  // Pre-select current clause in "give"
+  if (selectedCid) document.getElementById("trade-give").value = selectedCid;
+}
+
+document.getElementById("btn-submit-trade").addEventListener("click", async () => {
+  const giveId   = parseInt(document.getElementById("trade-give").value);
+  const gainId   = parseInt(document.getElementById("trade-gain").value);
+  const giveText = document.getElementById("trade-give-text").value.trim();
+  const gainText = document.getElementById("trade-gain-text").value.trim();
+  const note     = document.getElementById("trade-note").value.trim();
+  if (giveId === gainId) { toast("Give and Gain must be different clauses", "error"); return; }
+  setLoader(true, "Evaluating trade…");
+  closeModal("trade-modal");
+  try {
+    const res = await apiPost(`/negotiation/${sessionId}/trade`, {
+      give_clause_id:   giveId,
+      gain_clause_id:   gainId,
+      give_clause_text: giveText,
+      gain_clause_text: gainText,
+      trade_note:       note,
+    });
+    toast(res.accepted ? "🤝 Trade accepted!" : "Trade rejected — try a different pairing", res.accepted ? "success" : "error");
+    await refreshSession();
+  } catch(e) {
+    toast(e.message, "error");
+  } finally {
+    setLoader(false);
+  }
+});
+
+/* ── BATNA panel ───────────────────────────────────────────── */
+function renderBatna() {
+  if (!batnaData) return;
+  const u = batnaData.user_batna ?? 50;
+  const o = batnaData.opponent_batna ?? 50;
+  document.getElementById("batna-user-bar").style.width = u + "%";
+  document.getElementById("batna-opp-bar").style.width  = o + "%";
+  document.getElementById("batna-user-val").textContent = u;
+  document.getElementById("batna-opp-val").textContent  = o;
+  document.getElementById("leverage-label").innerHTML =
+    `<span style="color:${u>o?"var(--blue)":u<o?"var(--red)":"var(--text2)"}">${batnaData.leverage_label || "Balanced"}</span>`;
+  // advice
+  const advList = document.getElementById("advice-list");
+  const advice  = batnaData.strategic_advice || [];
+  if (advice.length) {
+    advList.innerHTML = advice.map(a => `<div class="advice-item">${a}</div>`).join("");
+  } else {
+    advList.innerHTML = '<div class="advice-item" style="color:var(--text3)">No advice available</div>';
+  }
+}
+
+/* ── Concession ledger ─────────────────────────────────────── */
+function renderLedger() {
+  if (!ledgerData) return;
+  const items = ledgerData.entries || [];
+  const conc  = document.getElementById("conc-list");
+  if (!items.length) {
+    conc.innerHTML = '<div style="color:var(--text3);font-size:12px">No concessions yet</div>';
+    document.getElementById("ledger-net").style.display = "none";
+    return;
+  }
+  conc.innerHTML = items.slice(-8).map(e =>
+    `<div class="concession-row">
+      <span class="conc-dir conc-${e.direction}">${e.direction}</span>
+      <span class="conc-desc">${(e.clause_key||"").replace(/_/g," ")}</span>
+      <span class="conc-val">${fmtCad(e.estimated_value_cad)}</span>
+    </div>`
+  ).join("");
+  const net = (ledgerData.total_gained_cad||0) - (ledgerData.total_gave_cad||0);
+  const netEl = document.getElementById("ledger-net");
+  netEl.style.display = "flex";
+  document.getElementById("ledger-net-val").innerHTML =
+    `<span class="${net>=0?"pos":"neg"}">${net>=0?"+":""}${fmtCad(net)}</span>`;
+}
+
+/* ── Jurisprudence ─────────────────────────────────────────── */
+const JURIS_STATIC = {
+  liability_cap: [{
+    case_name: "Tercon Contractors v British Columbia",
+    citation:  "2010 SCC 4",
+    principle: "Exclusion clauses enforced strictly; unconscionability bars enforcement only in egregious cases."
+  }],
+  limitation_of_liability: [{
+    case_name: "Hunter Engineering v Syncrude Canada",
+    citation:  "[1989] 1 SCR 426",
+    principle: "Limitation clauses valid unless unconscionable or against public policy at time of formation."
+  }],
+  good_faith: [{
+    case_name: "Bhasin v Hrynew",
+    citation:  "2014 SCC 71",
+    principle: "Duty of honest performance is a general organising principle; applies to all commercial contracts."
+  }],
+  payment_terms: [{
+    case_name: "Ontario Prompt Payment Act",
+    citation:  "SO 2019 c 13",
+    principle: "28-day payment cycle; adjudication within 30 days of dispute; lien preserved on public works."
+  }],
+  sla: [{
+    case_name: "MDS Inc v Factory Mutual Insurance",
+    citation:  "2021 ONCA 594",
+    principle: "Liquidated damages clause enforceable if genuine pre-estimate of loss at time of contracting."
+  }],
+  ip_ownership: [{
+    case_name: "Cinar Corp v Robinson",
+    citation:  "2013 SCC 73",
+    principle: "Copyright subsists in expression, not ideas; work-for-hire requires explicit written assignment."
+  }],
+  acceptance_criteria: [{
+    case_name: "CIBC Mortgages v Pitt",
+    citation:  "[1994] 1 AC 200 (HL)",
+    principle: "Acceptance of deliverables must match specification; deemed acceptance only after clear conduct."
+  }],
+};
+
+function renderJurisprudence(clauseType) {
+  const key   = (clauseType || "").toLowerCase().replace(/ /g,"_");
+  const cases = JURIS_STATIC[key] || [];
+  const el    = document.getElementById("juris-body");
+  if (!cases.length) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:12px">No cases indexed for this clause type</div>';
+    return;
+  }
+  el.innerHTML = cases.map(c => `
+    <div class="juris-card">
+      <div class="juris-case">${c.case_name}</div>
+      <div class="juris-cite">${c.citation}</div>
+      <div class="juris-principle">${c.principle}</div>
+    </div>`
+  ).join("");
+}
+
+/* ── Scenario modal ────────────────────────────────────────── */
+document.getElementById("btn-scenario").addEventListener("click", () => {
+  document.getElementById("scenario-result").style.display = "none";
+  openModal("scenario-modal");
+});
+
+document.getElementById("btn-run-scenario").addEventListener("click", async () => {
+  const type = document.getElementById("scenario-type").value;
+  const overrideText = document.getElementById("scenario-clause-text").value.trim();
+  setLoader(true, "Running scenario simulation…");
+  try {
+    const body = { scenario_type: type };
+    if (overrideText) body.clause_text = overrideText;
+    const res = await apiPost(`/negotiation/${sessionId}/scenario`, body);
+    renderScenarioResult(res);
+  } catch(e) {
+    toast(e.message, "error");
+  } finally {
+    setLoader(false);
+  }
+});
+
+function renderScenarioResult(res) {
+  const block = document.getElementById("scenario-result");
+  const items = document.getElementById("scenario-items");
+  block.style.display = "block";
+  const rows = [
+    ["Probability of dispute", res.probability_of_dispute != null ? `${Math.round(res.probability_of_dispute*100)}%` : "—"],
+    ["Estimated legal exposure", fmtCad(res.estimated_legal_exposure_cad)],
+    ["Restitution risk", fmtCad(res.restitution_risk_cad)],
+    ["Delay estimate", res.delay_estimate_weeks ? `${res.delay_estimate_weeks} weeks` : "—"],
+  ];
+  items.innerHTML = rows.map(([label, val]) =>
+    `<div class="scen-item"><span>${label}</span><span>${val}</span></div>`
+  ).join("");
+  document.getElementById("scenario-prevention").textContent =
+    res.prevention_summary ? `💡 ${res.prevention_summary}` : "";
+}
+
+/* ── Invite modal ──────────────────────────────────────────── */
+document.getElementById("btn-invite").addEventListener("click", () => {
+  document.getElementById("invite-link-row").style.display = "none";
+  document.getElementById("invite-status").textContent = "";
+  openModal("invite-modal");
+});
+
+document.getElementById("btn-gen-invite").addEventListener("click", async () => {
+  setLoader(true, "Generating invite…");
+  try {
+    const res = await apiPost(`/negotiation/${sessionId}/invite`, {});
+    const link = `${window.location.origin}/negotiation-arena.html?session=${sessionId}&token=${res.token}`;
+    document.getElementById("invite-link-input").value = link;
+    document.getElementById("invite-link-row").style.display = "flex";
+    document.getElementById("invite-status").textContent = `Link valid until ${new Date(res.expires_at).toLocaleString()}`;
+    document.getElementById("btn-gen-invite").textContent = "Regenerate";
+  } catch(e) {
+    toast(e.message, "error");
+  } finally {
+    setLoader(false);
+  }
+});
+
+document.getElementById("copy-invite").addEventListener("click", () => {
+  const val = document.getElementById("invite-link-input").value;
+  navigator.clipboard.writeText(val).then(() => toast("Link copied!", "success"));
+});
+
+/* ── Export modal ──────────────────────────────────────────── */
+document.getElementById("btn-export").addEventListener("click", async () => {
+  setLoader(true, "Generating export…");
+  try {
+    const res  = await apiPost(`/negotiation/${sessionId}/export`, {});
+    document.getElementById("export-text").value = res.contract_text || JSON.stringify(res, null, 2);
+    openModal("export-modal");
+  } catch(e) {
+    toast(e.message, "error");
+  } finally {
+    setLoader(false);
+  }
+});
+
+document.getElementById("copy-export").addEventListener("click", () => {
+  const val = document.getElementById("export-text").value;
+  navigator.clipboard.writeText(val).then(() => toast("Copied to clipboard!", "success"));
+});
+
+/* ── Refresh session (after each action) ───────────────────── */
+async function refreshSession() {
+  try {
+    [sessionData, batnaData, ledgerData] = await Promise.all([
+      apiGet(`/negotiation/${sessionId}`),
+      apiGet(`/negotiation/${sessionId}/batna`),
+      apiGet(`/negotiation/${sessionId}/ledger`),
+    ]);
+    clauses = sessionData.clauses || [];
+    renderTopbar();
+    renderClauseLedger();
+    renderBatna();
+    renderLedger();
+    renderLedgerProgress();
+    if (selectedCid) selectClause(selectedCid);
+  } catch(e) {
+    toast(`Refresh failed: ${e.message}`, "error");
+  }
+}
+
+/* ── Escape closes modals ──────────────────────────────────── */
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".modal-overlay.open").forEach(m => m.classList.remove("open"));
+  }
+});
+document.querySelectorAll(".modal-overlay").forEach(overlay => {
+  overlay.addEventListener("click", e => {
+    if (e.target === overlay) overlay.classList.remove("open");
+  });
+});
+
+/* ── Boot ──────────────────────────────────────────────────── */
+loadSession();
+</script>
+</body>
+</html>

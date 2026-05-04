@@ -54,6 +54,11 @@ _mock_faiss.IndexFlatL2.return_value = _mock_faiss_index
 sys.modules["faiss"] = _mock_faiss
 sys.modules["sentence_transformers"] = MagicMock()
 
+# Stub spacy — not available on Python 3.9 in test environment
+_mock_spacy = MagicMock()
+_mock_spacy.load.side_effect = OSError("spacy model not installed")
+sys.modules["spacy"] = _mock_spacy
+
 # Patch embed_text early — the module will be imported by the app
 import app.nlp.embeddings as _emb_mod  # noqa: E402
 
