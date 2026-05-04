@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 import stripe
 import logging
@@ -63,19 +63,19 @@ async def list_plans():
 
 class CheckoutRequest(BaseModel):
     plan_id: str
+    email: EmailStr              # required; Pydantic validates format (422 on bad input)
     success_url: Optional[str] = None  # defaults to settings.frontend_url
     cancel_url: Optional[str] = None
 
 
 @router.post("/checkout")
-async def create_checkout(
-    request: CheckoutRequest,
-    current_user=Depends(get_current_user),
-):
+async def create_checkout(request: CheckoutRequest):
     """
-    Create a Stripe Checkout session for the authenticated user.
+    Create a Stripe Checkout session. Publicly accessible — visitors may check out
+    before creating a Lexara account. The caller supplies their email directly;
+    no JWT is required. Auth (get_current_user) is deliberately omitted so that
+    the landing page CTA works without prior registration.
 
-    CA-003: requires auth — unauthenticated callers cannot create Stripe sessions.
     CA-019: success_url separator is now ? or & depending on whether URL has query params.
     """
     plan = PLANS.get(request.plan_id)
@@ -84,8 +84,7 @@ async def create_checkout(
     if plan["price_id"] is None:
         raise HTTPException(status_code=400, detail="Free plan does not require checkout")
 
-    # Use authenticated user's email — prevents email impersonation
-    email = current_user.email
+    email = str(request.email)
 
     # CA-019: correct separator; CA-023/CA-030: URL from settings not hardcoded
     base_success = request.success_url or f"{settings.frontend_url}?checkout=success"
@@ -101,9 +100,9 @@ async def create_checkout(
             line_items=[{"price": plan["price_id"], "quantity": 1}],
             success_url=success_url,
             cancel_url=cancel_url,
-            metadata={"plan_id": request.plan_id, "user_id": current_user.id, "email": email},
+            metadata={"plan_id": request.plan_id, "email": email},
             subscription_data={
-                "metadata": {"plan_id": request.plan_id, "user_id": current_user.id}
+                "metadata": {"plan_id": request.plan_id}
             },
             allow_promotion_codes=True,
             billing_address_collection="auto",
