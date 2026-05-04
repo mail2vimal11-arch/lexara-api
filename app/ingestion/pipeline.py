@@ -91,7 +91,9 @@ async def run_ingestion(db: Session, query: str = "procurement") -> dict:
             raw_data=raw_data,
         )
         db.add(tender)
-        db.flush()   # get the PK without committing yet
+        # CA-011: no per-item flush — Tender.id is a Python-generated UUID so
+        # the PK is already set on the object.  A single db.commit() below
+        # persists everything in one round-trip.
 
         # Learn clauses from this tender's description.
         # learn_from_tender adds clause rows to the DB session but does NOT

@@ -63,10 +63,20 @@ def search(
     if req.clause_type:
         results = [r for r in results if r.get("clause_type") == req.clause_type]
 
-    # Enrich with DB fields
+    # CA-012: batch-fetch all matched clause rows in one query instead of N+1 SELECTs
+    result_ids   = [r["clause_id"] for r in results]
+    distance_map = {r["clause_id"]: r.get("distance") for r in results}
+
+    clause_rows = (
+        db.query(SOWClause)
+        .filter(SOWClause.clause_id.in_(result_ids))
+        .all()
+    )
+    clause_map = {c.clause_id: c for c in clause_rows}
+
     enriched = []
-    for r in results:
-        clause = db.query(SOWClause).filter(SOWClause.clause_id == r["clause_id"]).first()
+    for cid in result_ids:
+        clause = clause_map.get(cid)
         if clause:
             enriched.append({
                 "clause_id": clause.clause_id,
@@ -75,7 +85,7 @@ def search(
                 "jurisdiction": clause.jurisdiction,
                 "risk_level": clause.risk_level,
                 "is_standard": clause.is_standard,
-                "similarity_distance": r.get("distance"),
+                "similarity_distance": distance_map.get(cid),
             })
 
     log_action(db, "CLAUSE_SEARCH", {"query": req.query, "results": len(enriched)}, user_id=current_user.id)
@@ -97,7 +107,7 @@ def library(
     if jurisdiction:
         q = q.filter(SOWClause.jurisdiction == jurisdiction)
     if standard_only:
-        q = q.filter(SOWClause.is_standard == True)  # noqa
+        q = q.filter(SOWClause.is_standard.is_(True))  # CA-028: use .is_(True) not == True
     clauses = q.order_by(SOWClause.is_standard.desc(), SOWClause.created_at.desc()).limit(100).all()
 
     return {

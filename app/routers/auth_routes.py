@@ -25,8 +25,8 @@ class LoginRequest(BaseModel):
 
 
 @router.post("/register")
-def register(req: RegisterRequest, db: Session = Depends(get_db)):
-    """Register a new user."""
+async def register(req: RegisterRequest, db: Session = Depends(get_db)):
+    """Register a new user."""  # CA-026: made async (consistent with all v1 endpoints)
     if db.query(User).filter(User.username == req.username).first():
         raise HTTPException(status_code=400, detail="Username already taken")
     user = User(

@@ -20,8 +20,9 @@ def log_action(
     """
     Write an audit log entry.
 
-    Commit failures are non-fatal — a warning is logged and the session is
-    rolled back so it remains usable for the caller's own subsequent writes.
+    CA-013: commit is wrapped in try/except so an audit write failure is
+    non-fatal — it logs a warning and rolls back only the audit entry, not
+    any business data already committed in the same request.
 
     Args:
         db:         Database session.
@@ -38,9 +39,9 @@ def log_action(
         ip_address=ip_address,
         source_url=source_url,
     )
-    db.add(entry)
     try:
+        db.add(entry)
         db.commit()
-    except Exception as e:
+    except Exception as exc:
         db.rollback()
-        logger.warning(f"Audit log write failed (non-fatal): {e}")
+        logger.warning("Audit log write failed (non-fatal): action=%s error=%s", action, exc)

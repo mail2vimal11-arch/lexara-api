@@ -174,7 +174,7 @@ SAMPLE_CLAUSE_TEXT = (
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
     """Create all tables once before tests, drop after."""
-    from app.models import user, clause, tender, audit  # noqa: F401
+    from app.models import user, clause, tender, audit, billing  # noqa: F401
     Base.metadata.create_all(bind=app_engine)
     yield
     Base.metadata.drop_all(bind=app_engine)
@@ -182,7 +182,7 @@ def setup_database():
 
 @pytest.fixture(scope="session")
 def client():
-    with TestClient(app, raise_server_exceptions=False) as c:
+    with TestClient(app) as c:  # CA-015: raise_server_exceptions=True (default) — 500s now surface in tests
         yield c
 
 
@@ -279,22 +279,26 @@ MOCK_MISSING_CLAUSES_RESPONSE = {
 }
 
 MOCK_EXTRACT_CLAUSES_RESPONSE = {
+    # CA-025: fields corrected to match ExtractedClause model in app/routers/contracts.py
+    # (type, severity, original, revised, rationale, section)
     "clauses": [
         {
             "type": "termination",
+            "severity": "high",
+            "original": "Either party may terminate with 60 days notice.",
+            "revised": "Either party may terminate with 90 days written notice for convenience, "
+                       "or immediately upon uncured material breach.",
+            "rationale": "Extended notice period provides stability under Ontario contract norms.",
             "section": "Section 2",
-            "severity": "medium",
-            "original": "Either party may terminate this Agreement upon sixty (60) days written notice.",
-            "revised": "Either party may end this agreement with 60 days written notice.",
-            "rationale": "Simplified language improves clarity for non-legal readers.",
         },
         {
             "type": "liability",
+            "severity": "medium",
+            "original": "Excludes indirect damages and caps aggregate liability at 12 months of fees.",
+            "revised": "Caps aggregate liability at 24 months of fees; excludes consequential "
+                       "damages as permitted under Ontario law.",
+            "rationale": "Cap extended to align with industry norms for professional services.",
             "section": "Section 6",
-            "severity": "high",
-            "original": "The total aggregate liability of either party shall not exceed the fees paid.",
-            "revised": "Neither party's total liability may exceed the fees paid.",
-            "rationale": "Plain-English rewrite removes legalese and improves readability.",
         },
     ],
     "tokens_used": 170,

@@ -9,6 +9,8 @@ from sqlalchemy import text
 from app.config import settings
 from app.database.session import engine
 
+from app.config import settings
+
 router = APIRouter()
 
 # Captured at import so /status can report process uptime.
@@ -22,7 +24,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "version": "1.0.0"
+        "version": settings.version,  # CA-022: use settings.version not hardcoded string
     }
 
 

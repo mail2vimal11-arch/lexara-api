@@ -58,11 +58,15 @@ def decode_token(token: str) -> dict:
 
 # ── FastAPI Dependencies ──────────────────────────────────────────────────────
 
-def get_current_user(
+async def get_current_user(
     authorization: str = Header(None),
     db: Session = Depends(get_db),
 ) -> User:
-    """Dependency: extract and validate the current user from the JWT Bearer token."""
+    """Dependency: extract and validate the current user from the JWT Bearer token.
+
+    CA-009: now async (consistent with all other v1 dependencies).
+    CA-009: rejects suspended accounts (is_active=False) with 403.
+    """
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authorization header missing or malformed")
     token = authorization.split(" ", 1)[1]
@@ -73,6 +77,8 @@ def get_current_user(
     user = db.query(User).filter(User.username == username).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account suspended")
     return user
 
 

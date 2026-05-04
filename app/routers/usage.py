@@ -1,11 +1,14 @@
 """API usage and quota information — live counts from AuditLog."""
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 import logging
 
 from app.database.session import get_db
+from app.models.billing import Analysis
+from app.routers.billing import PLANS
 from app.security import get_current_user
 from app.models.audit import AuditLog
 

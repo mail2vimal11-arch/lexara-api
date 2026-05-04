@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 from typing import Optional, List
 import logging
 from datetime import datetime
@@ -46,7 +47,7 @@ class SummaryResponse(BaseModel):
 @router.post("/summary", response_model=SummaryResponse)
 async def get_summary(
     request: ContractRequest,
-    db=Depends(get_db),
+    db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """
@@ -96,7 +97,7 @@ class RiskScoreResponse(BaseModel):
 @router.post("/risk-score", response_model=RiskScoreResponse)
 async def get_risk_score(
     request: ContractRequest,
-    db=Depends(get_db),
+    db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """
@@ -151,7 +152,7 @@ class KeyRisksResponse(BaseModel):
 @router.post("/key-risks", response_model=KeyRisksResponse)
 async def get_key_risks(
     request: ContractRequest,
-    db=Depends(get_db),
+    db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """
@@ -201,7 +202,7 @@ class MissingClausesResponse(BaseModel):
 @router.post("/missing-clauses", response_model=MissingClausesResponse)
 async def get_missing_clauses(
     request: ContractRequest,
-    db=Depends(get_db),
+    db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """
@@ -254,7 +255,7 @@ class ExtractClausesResponse(BaseModel):
 @router.post("/extract-clauses", response_model=ExtractClausesResponse)
 async def extract_clauses(
     request: ContractRequest,
-    db=Depends(get_db),
+    db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """
