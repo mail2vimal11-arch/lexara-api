@@ -5,7 +5,7 @@ Auth bypass was fixed in 25fdee4; JWT validation added at middleware layer — C
 """
 
 from fastapi import Request
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 import logging
@@ -63,18 +63,27 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
             if not auth_header or not auth_header.startswith("Bearer "):
                 return JSONResponse(
                     status_code=401,
-                    content={"error": "unauthorized", "message": "Invalid or missing Authorization header"},
+                    content={"detail": "Invalid authentication token"},
                     headers={"WWW-Authenticate": "Bearer"},
                 )
 
             # CA-008: validate JWT signature at middleware layer (defense in depth)
+            # ExpiredSignatureError must be caught BEFORE the generic JWTError,
+            # since ExpiredSignatureError is a subclass of JWTError.
             token = auth_header.split(" ", 1)[1]
             try:
                 jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+            except ExpiredSignatureError:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Token has expired. Please log in again."},
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
             except JWTError:
                 return JSONResponse(
                     status_code=401,
-                    content={"error": "unauthorized", "message": "Invalid or expired token"},
+                    content={"detail": "Invalid authentication token"},
+                    headers={"WWW-Authenticate": "Bearer"},
                 )
 
         response = await call_next(request)

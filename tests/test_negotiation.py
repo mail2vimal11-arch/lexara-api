@@ -25,14 +25,17 @@ def test_negotiation_scenarios_route_reachable(client):
     # Either the unscoped listing exists (200/401) or it 404s as a missing resource —
     # what matters is no 5xx and the prefix isn't doubled.
     assert resp.status_code < 500, f"unexpected 5xx: {resp.status_code}"
-    # Confirm the doubled-prefix bug is gone. Auth middleware short-circuits
-    # any unauthenticated /v1/* request to 401 before route resolution, so
-    # send a (fake) Bearer header to reach FastAPI's own 404 handler.
+    # Confirm the doubled-prefix bug is gone. With CA-008 JWT validation at middleware
+    # level, any invalid Bearer token (including fake ones) is rejected with 401 before
+    # route resolution. Both 401 and 404 prove the doubled-prefix route does NOT resolve.
     bad = client.get(
         "/v1/negotiation/v1/negotiation/scenarios",
         headers={"Authorization": "Bearer fake-test-token"},
     )
-    assert bad.status_code == 404, "doubled prefix /v1/negotiation/v1/negotiation/ should NOT resolve"
+    assert bad.status_code in (401, 404), (
+        "doubled prefix /v1/negotiation/v1/negotiation/ should NOT resolve "
+        f"(got {bad.status_code})"
+    )
 
 
 def test_workbench_commodities_search_route_reachable(client):
