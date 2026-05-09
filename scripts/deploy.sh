@@ -23,11 +23,30 @@ docker compose pull api
 docker compose up -d api
 docker image prune -f
 
-sleep 6
+# Wait for the new container to become healthy. The HEALTHCHECK in the
+# Dockerfile probes /status; we poll docker for its result rather than
+# guessing a sleep duration. Times out after ~150s (10s * 15 attempts) to
+# cover FAISS bootstrap + clause seed on a cold start.
+echo "Waiting for api to become healthy..."
+for i in $(seq 1 15); do
+  state=$(docker inspect --format '{{.State.Health.Status}}' lexara-api-api-1 2>/dev/null || echo "unknown")
+  if [ "$state" = "healthy" ]; then
+    echo "api is healthy after ${i} attempts"
+    break
+  fi
+  if [ "$i" -eq 15 ]; then
+    echo "api never became healthy (last state: $state) — last 100 lines of logs:"
+    docker compose logs --tail=100 api
+    exit 1
+  fi
+  sleep 10
+done
+
+# End-to-end check through Traefik / TLS.
 if curl -fsS --max-time 10 https://api.lexara.tech/status > /dev/null; then
   echo "Deploy of $API_TAG OK"
 else
-  echo "Smoke test failed — last 100 lines of api logs:"
-  docker compose logs --tail=100 api
+  echo "Container is healthy but public endpoint failed — Traefik routing issue?"
+  docker compose logs --tail=50 api
   exit 1
 fi
