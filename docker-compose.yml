@@ -16,6 +16,9 @@ services:
       - "traefik.docker.network=traefik-public"
 
   api:
+    # Production pulls a tagged image built by .github/workflows/deploy.yml.
+    # `build: .` is kept so `docker compose build` still works for local dev.
+    image: ghcr.io/mail2vimal11-arch/lexara-api:${API_TAG:-latest}
     build: .
     restart: always
     env_file: .env
@@ -39,6 +42,11 @@ services:
       - "traefik.http.middlewares.api-timeout.buffering.maxResponseBodyBytes=0"
       - "traefik.http.routers.lexara-api.middlewares=api-timeout"
       - "traefik.http.services.lexara-api.loadbalancer.responseforwarding.flushinterval=1s"
+      # Active healthcheck against /status (added in #8). A degraded DB
+      # marks the backend unhealthy and Traefik will stop routing to it.
+      - "traefik.http.services.lexara-api.loadbalancer.healthcheck.path=/status"
+      - "traefik.http.services.lexara-api.loadbalancer.healthcheck.interval=30s"
+      - "traefik.http.services.lexara-api.loadbalancer.healthcheck.timeout=5s"
       - "traefik.docker.network=traefik-public"
 
   db:

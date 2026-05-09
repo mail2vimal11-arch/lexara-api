@@ -1,468 +1,163 @@
-# LexRisk Deployment Guide
+# LexAra Deployment Guide
 
-Complete guide to deploying LexRisk to FastAPI.com and GitHub.
-
----
-
-## Prerequisites
-
-- Python 3.11+
-- Git
-- PostgreSQL (local or managed)
-- Redis (local or managed)
-- FastAPI.com account
-- GitHub account
-- Stripe account (for billing)
-- Anthropic Claude API key
+LexAra runs on a single VPS using Docker Compose, fronted by Traefik for TLS
+and routing. Releases are continuously delivered from GitHub: a push to `main`
+triggers `.github/workflows/deploy.yml`, which builds the api image, pushes
+it to GHCR, and rolls the running container on the VPS.
 
 ---
 
-## Step 1: Push to GitHub
+## Topology
 
-### 1.1 Create GitHub Repository
-
-```bash
-# Go to https://github.com/new
-# Create repository: lexrisk-api
-# Don't initialize with README (we already have one)
+```
+                    ┌────────────────── Traefik (TLS, Let's Encrypt) ───┐
+                    │                                                   │
+  lexara.tech  ─────┼──► frontend  (nginx:alpine, ./website mounted)    │
+  api.lexara.tech ──┼──► api       (ghcr.io/mail2vimal11-arch/...)      │
+                    │     ├── db    (postgres:16-alpine)                │
+                    │     ├── redis (redis:7-alpine)                    │
+                    │     └── hf-warmer (curlimages/curl)               │
+                    └───────────────────────────────────────────────────┘
 ```
 
-### 1.2 Push Local Repo
-
-```bash
-cd lexrisk-api
-
-# Add remote (replace USERNAME)
-git remote add origin https://github.com/YOUR_USERNAME/lexrisk-api.git
-git branch -M main
-git push -u origin main
-```
-
-### 1.3 Verify on GitHub
-
-Visit: `https://github.com/YOUR_USERNAME/lexrisk-api`
-
-You should see:
-- All source files
-- README.md
-- .github/workflows/tests.yml
-- Full commit history
+All services and definitions live in `docker-compose.yml`. The api service is
+the only one that ships from GHCR; the rest run upstream images.
 
 ---
 
-## Step 2: Deploy to FastAPI.com
+## Continuous deployment
 
-### 2.1 Create FastAPI.com Project
+### Trigger
 
-1. Go to **fastapi.com** → Log in
-2. Click **"New Project"** → **"Deploy from GitHub"**
-3. Select your GitHub account (authorize if needed)
-4. Choose **`lexrisk-api`** repository
-5. Click **"Connect"**
+Any push to `main` (including squash-merged PRs) starts the workflow at
+`.github/workflows/deploy.yml`. It can also be run manually via
+*Actions → Build and Deploy → Run workflow*.
 
-### 2.2 Configure Build Settings
+### Pipeline stages
 
-In FastAPI.com dashboard:
+1. **Build** on a GitHub-hosted runner. The Dockerfile is built with Buildx,
+   layer cache is read from / written to GitHub Actions cache, and the image
+   is pushed to GHCR with two tags:
+   - `ghcr.io/mail2vimal11-arch/lexara-api:latest`
+   - `ghcr.io/mail2vimal11-arch/lexara-api:sha-<short-sha>`
+2. **Deploy** SSHes to the VPS, fast-forwards the working tree to the new
+   `main`, exports `API_TAG=sha-<short-sha>`, and runs
+   `docker compose pull api && docker compose up -d api`.
+3. **Smoke test** the public endpoint:
+   `curl https://api.lexara.tech/status` must return 200. On failure, the
+   workflow dumps the last 100 lines of api logs and exits non-zero.
 
-```
-Build Command:     pip install -r requirements.txt
-Start Command:     uvicorn app.main:app --host 0.0.0.0 --port 8000
-Root Directory:    ./
-Python Version:    3.11
-```
+### Required GitHub repository secrets
 
-### 2.3 Set Environment Variables
+Already configured on this repo:
 
-Go to **Project Settings** → **Environment Variables**
+| Secret | Purpose |
+|---|---|
+| `VPS_HOST` | VPS hostname or IP |
+| `VPS_USER` | SSH user (must be in the docker group) |
+| `VPS_SSH_KEY` | Private key whose public half is in `~/.ssh/authorized_keys` on the VPS |
 
-Add each variable:
+Image push uses the built-in `GITHUB_TOKEN` — no additional registry secret
+is needed because the image is published as a public package on GHCR.
 
-```
-CLAUDE_API_KEY                 sk-ant-...
-RECEIPTS_API_KEY              sk_live_...
-DATABASE_URL                  postgresql://user:pass@host:5432/lexrisk
-REDIS_URL                     redis://host:6379/0
-STRIPE_SECRET_KEY             sk_live_...
-STRIPE_PUBLISHABLE_KEY        pk_live_...
-STRIPE_WEBHOOK_SECRET         whsec_...
-SECRET_KEY                    [generate: python -c "import secrets; print(secrets.token_urlsafe(32))"]
-ALLOWED_ORIGINS               https://lexrisk.com,https://www.lexrisk.com
-ENVIRONMENT                   production
-DEBUG                         false
-```
+### VPS layout the workflow expects
 
-### 2.4 Deploy
-
-Click **"Deploy"** → FastAPI.com builds and deploys automatically.
-
-Monitor in **Deployments** tab.
-
-### 2.5 Verify Deployment
-
-```bash
-# Get your FastAPI.com URL from dashboard
-# Should look like: https://lexrisk-abc123.fastapi.run
-
-curl https://YOUR_FASTAPI_URL/health
-# Should return: {"status": "healthy", ...}
-```
+- `/opt/lexara-api` is a clone of this repository, on branch `main`.
+- The deploy SSH user can run `docker compose` without sudo.
+- A `.env` file exists at `/opt/lexara-api/.env` with the production secrets
+  (see *Required environment variables* below).
 
 ---
 
-## Step 3: Setup Custom Domain
+## Manual deploy (fallback)
 
-### 3.1 Point Domain to FastAPI.com
-
-In your domain registrar (Namecheap, GoDaddy, etc.):
-
-```
-CNAME: lexrisk.com  →  YOUR_FASTAPI_URL.fastapi.run
-A Record: (if required) → FastAPI.com's IP
-```
-
-Or use FastAPI.com's nameservers directly (easier).
-
-### 3.2 Verify in FastAPI.com
-
-Go to **Project Settings** → **Custom Domains**
-
-Add domain: `lexrisk.com`
-
-FastAPI.com will provide SSL certificate automatically (Let's Encrypt).
-
----
-
-## Step 4: Setup Database
-
-### 4.1 Option A: Managed PostgreSQL (Recommended)
-
-Use **Amazon RDS**, **Heroku Postgres**, or **Render**:
+The normal path is CI. If GitHub Actions is unavailable, you can roll from
+the VPS itself:
 
 ```bash
-# Example: Amazon RDS
-# Endpoint: lexrisk-db.c9akciq32.us-east-1.rds.amazonaws.com:5432
-# Username: admin
-# Password: [your-secure-password]
-# Database: lexrisk
-
-# DATABASE_URL format:
-postgresql://admin:password@lexrisk-db.c9akciq32.us-east-1.rds.amazonaws.com:5432/lexrisk
+ssh ${VPS_USER}@${VPS_HOST}
+cd /opt/lexara-api
+./scripts/deploy.sh                 # roll to :latest
+./scripts/deploy.sh sha-abc1234     # roll to a specific tag
 ```
 
-### 4.2 Initialize Database
-
-```bash
-# From local machine
-python -c "from app.database.session import init_db; init_db()"
-
-# Or from FastAPI.com console
-# (Settings → Shell → run above command)
-```
-
----
-
-## Step 5: Setup Stripe Webhooks
-
-### 5.1 Get Webhook Endpoint URL
-
-From FastAPI.com dashboard:
-```
-https://lexrisk-abc123.fastapi.run/v1/webhooks/stripe
-```
-
-### 5.2 Add Webhook in Stripe Dashboard
-
-Go to **Developers** → **Webhooks**
-
-Click **"Add endpoint"**
-
-```
-Endpoint URL:  https://lexrisk-abc123.fastapi.run/v1/webhooks/stripe
-Events:
-  ✓ customer.subscription.updated
-  ✓ customer.subscription.deleted
-  ✓ charge.failed
-  ✓ invoice.created
-```
-
-Copy **Signing secret** (whsec_...) → Add to env vars
-
----
-
-## Step 6: GitHub Actions CI/CD
-
-### 6.1 Add Secrets to GitHub
-
-Go to **Settings** → **Secrets and variables** → **Actions**
-
-Click **"New repository secret"**
-
-Add:
-```
-Name: FASTAPI_TOKEN
-Value: [Generate from FastAPI.com → Settings → Deploy Keys]
-
-Name: CLAUDE_API_KEY
-Value: sk-ant-...
-
-Name: RECEIPTS_API_KEY
-Value: sk_live_...
-```
-
-### 6.2 Verify Workflow
-
-Push a test commit:
-```bash
-git add .
-git commit -m "Test CI/CD workflow"
-git push origin main
-```
-
-Go to **Actions** tab on GitHub:
-- Should see **"Tests & Deploy"** workflow running
-- Should pass tests and auto-deploy to FastAPI.com
-
----
-
-## Step 7: Monitoring & Logging
-
-### 7.1 CloudWatch (AWS) or FastAPI.com Logs
-
-```bash
-# View logs
-fastapi logs
-
-# Follow logs in real-time
-fastapi logs --follow
-```
-
-### 7.2 Error Tracking (Optional)
-
-Add **Sentry** or **DataDog** for error monitoring:
-
-```bash
-# Install Sentry SDK
-pip install sentry-sdk
-
-# Add to app/main.py
-import sentry_sdk
-sentry_sdk.init("https://key@sentry.io/project")
-```
-
----
-
-## Step 8: Post-Deployment Checklist
-
-- [ ] API health check: `GET /health` returns 200
-- [ ] API docs: Visit `/docs` → Swagger UI loads
-- [ ] Analyze endpoint: Test `POST /v1/analyze-contract`
-- [ ] Database: Tables created successfully
-- [ ] Environment vars: All set in FastAPI.com
-- [ ] Stripe webhooks: Receiving events
-- [ ] GitHub Actions: Tests passing
-- [ ] Domain: CNAME pointing correctly
-- [ ] SSL: Certificate issued and valid
-- [ ] Analytics: Set up monitoring
-
----
-
-## Step 9: Local Development
-
-### 9.1 Setup Local Environment
-
-```bash
-# Clone repo
-git clone https://github.com/YOUR_USERNAME/lexrisk-api.git
-cd lexrisk-api
-
-# Create venv
-python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
-
-# Install deps
-pip install -r requirements.txt
-
-# Copy env
-cp .env.example .env
-```
-
-### 9.2 Configure Local .env
-
-```bash
-# Edit .env with local credentials
-CLAUDE_API_KEY=sk-ant-...
-DATABASE_URL=postgresql://localhost/lexrisk
-REDIS_URL=redis://localhost:6379/0
-# ... other vars
-```
-
-### 9.3 Run Locally
-
-```bash
-# Start dev server
-python -m uvicorn app.main:app --reload
-
-# Visit http://localhost:8000/docs
-```
-
----
-
-## Step 10: Update Website
-
-### 10.1 Deploy Website
-
-The website files are in `/website`:
-- `index.html` (landing page)
-- `styles.css` (AODA-compliant styling)
-- `script.js` (accessibility features)
-
-**Option A: Serve from FastAPI**
-
-```python
-# In app/main.py
-from fastapi.staticfiles import StaticFiles
-
-app.mount("/", StaticFiles(directory="website", html=True), name="website")
-```
-
-**Option B: Deploy separately to Vercel/Netlify**
-
-```bash
-# Create vercel.json
-{
-  "buildCommand": "echo 'No build needed'",
-  "outputDirectory": "website"
-}
-
-# Deploy
-vercel
-```
-
-### 10.2 Update DNS
-
-If deploying website separately:
-```
-www.lexrisk.com  → Vercel
-lexrisk.com      → FastAPI.com (API)
-```
-
-Or use subdomain:
-```
-api.lexrisk.com  → FastAPI.com
-lexrisk.com      → Vercel
-```
-
----
-
-## Troubleshooting
-
-### Build Fails
-
-```bash
-# Check build logs in FastAPI.com dashboard
-# Common issues:
-# - Missing requirements.txt dependencies
-# - Syntax errors in Python code
-# - Missing environment variables
-
-# Fix and push:
-git add .
-git commit -m "Fix build error"
-git push origin main
-```
-
-### Database Connection Error
-
-```
-psycopg2.OperationalError: could not translate host name
-```
-
-Check:
-1. DATABASE_URL is correct format
-2. Database server is running
-3. Firewall allows connection
-4. Database exists
-
-```bash
-# Test connection
-psql $DATABASE_URL -c "SELECT 1"
-```
-
-### Stripe Webhook Not Received
-
-```bash
-# Test webhook manually in Stripe Dashboard
-# Settings → Webhooks → Click webhook → Test
-# Check logs for errors
-
-# If 401: Check STRIPE_WEBHOOK_SECRET env var
-# If 404: Check webhook endpoint URL is correct
-```
-
-### API Rate Limiting Issues
-
-Check headers:
-```bash
-curl -i https://lexrisk-abc123.fastapi.run/v1/analyze-contract
-```
-
-Look for:
-```
-X-RateLimit-Limit: 10
-X-RateLimit-Remaining: 9
-X-RateLimit-Reset: [timestamp]
-```
-
-If rate limited (429): Wait or upgrade plan.
-
----
-
-## Scaling
-
-### Add More Resources
-
-As traffic grows:
-
-1. **Upgrade FastAPI.com plan** → More concurrent workers
-2. **Scale PostgreSQL** → Larger instance
-3. **Scale Redis** → Higher memory, cluster mode
-4. **Add CDN** → CloudFlare for static assets
-
-### Monitor Performance
-
-```bash
-# Response time
-curl -w "@curl-format.txt" https://lexrisk-abc123.fastapi.run/health
-
-# Database connections
-SELECT datname, count(*) FROM pg_stat_activity GROUP BY datname;
-
-# Redis memory
-redis-cli INFO memory
-```
+The script does the same `git reset --hard origin/main` + `docker compose
+pull && up -d` + smoke test as the workflow.
 
 ---
 
 ## Rollback
 
-If deployment fails:
+Every successful build leaves a SHA-tagged image on GHCR. To roll back
+(typical case: a bad deploy is now serving and you want the previous good
+SHA):
 
 ```bash
-# FastAPI.com automatically keeps previous versions
-# Go to Deployments tab → Click previous version → Rollback
-
-# Or via Git
-git revert HEAD
-git push origin main
+ssh ${VPS_USER}@${VPS_HOST}
+cd /opt/lexara-api
+./scripts/deploy.sh sha-<previous-good-sha>
 ```
+
+The previous image isn't deleted until `docker image prune -f` runs at the
+end of a subsequent successful deploy, so you typically have at least one
+prior image cached locally on the VPS.
 
 ---
 
-## Support
+## Required environment variables (`/opt/lexara-api/.env`)
 
-- FastAPI.com Docs: https://docs.fastapi.com
-- PostgreSQL Docs: https://www.postgresql.org/docs/
-- Stripe Docs: https://stripe.com/docs
-- Claude API Docs: https://docs.anthropic.com
+Variables consumed by `app/config.py`. Names map 1:1 to the `Settings`
+fields in that file (case-insensitive).
 
-Contact: support@lexrisk.com
+| Variable | Required | Notes |
+|---|---|---|
+| `SECRET_KEY` | yes | App secret |
+| `JWT_SECRET` | yes | JWT signing |
+| `JWT_ALGORITHM` | no | Default `HS256` |
+| `DATABASE_URL` | yes | `postgresql://user:pass@db:5432/lexaradb` (note `db` is the compose service name) |
+| `REDIS_URL` | no | Default `redis://redis:6379/0` |
+| `CLAUDE_API_KEY` | yes | Anthropic key |
+| `RECEIPTS_API_KEY` | yes | Internal receipt service |
+| `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` / `STRIPE_WEBHOOK_SECRET` | yes | Billing |
+| `STRIPE_PRICE_STARTER` / `STRIPE_PRICE_GROWTH` / `STRIPE_PRICE_BUSINESS` | yes | Plan price IDs |
+| `GROQ_API_KEY` / `GROQ_MODEL` | optional | Enables Groq tier of LLM waterfall |
+| `HF_API_TOKEN` / `HF_MODEL_ID` | optional | Enables HF inference + the `hf-warmer` sidecar |
+| `USE_GROQ` | no | Default `true`, set `false` to skip Groq |
+| `USE_LOCAL_LLM` | no | Default `true`, set `false` to skip local LLM |
+| `ALLOWED_ORIGINS` | no | Comma-separated CORS list |
+| `POSTGRES_DB_USER` / `POSTGRES_DB_PASSWORD` / `POSTGRES_DB_NAME` | no | Defaults `lexara` / `lexara123` / `lexaradb` (override in production) |
+
+---
+
+## Smoke tests
+
+Endpoints that should always return 200 against a healthy deploy:
+
+```bash
+curl -fsS https://api.lexara.tech/health
+curl -fsS https://api.lexara.tech/status     # version + uptime + DB check
+curl -fsS https://lexara.tech/                # marketing site
+```
+
+`/status` (added in PR #8) is the most informative — it returns service
+version, process uptime, and the result of a `SELECT 1` against the
+database. A `degraded` overall status with `checks.database.status == "error"`
+means the new container booted but can't reach Postgres (typically a stale
+`DATABASE_URL` or a network misconfiguration).
+
+---
+
+## Operational notes
+
+- **Layer cache.** GHA cache is keyed per branch + workflow. First build on
+  a fresh cache takes ~6–8 min (downloads `en_core_web_sm` and the MiniLM
+  encoder); subsequent builds with the same `requirements.txt` are ~90 s.
+- **Schema migrations.** None today — the app uses
+  `Base.metadata.create_all` in the FastAPI lifespan to create missing
+  tables idempotently. If you introduce destructive schema changes, add
+  Alembic and a migration step in the workflow before `docker compose up`.
+- **Backups.** The `postgres_data` volume is not currently backed up.
+  Recommended next step: a sidecar that runs `pg_dump` daily and ships the
+  archive to off-VPS storage.
+- **`hf-warmer`.** Pings the HF Inference endpoint every 10 min so the model
+  doesn't go cold. Pinned to `curlimages/curl:8.7.1` and capped at 64 MiB.
