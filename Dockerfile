@@ -2,6 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install runtime tools used for healthchecks and ad-hoc debugging from
+# inside the container (the slim base image ships neither).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies
 COPY requirements.txt .
 # CA-021: model is downloaded from HuggingFace Hub at build time.
@@ -18,5 +24,10 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 COPY . .
 
 EXPOSE 8000
+
+# Marks the container "healthy" only once /status answers 200. Long
+# start_period covers FAISS bootstrap + clause seed on first boot.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=90s --retries=3 \
+    CMD curl -fsS http://localhost:8000/status > /dev/null || exit 1
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

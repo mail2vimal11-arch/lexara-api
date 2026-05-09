@@ -83,12 +83,28 @@ jobs:
             docker compose up -d api
             docker image prune -f
 
-            # Smoke test the new container against /status. Fall back to
-            # public Traefik route after a short warm-up to also exercise TLS.
-            sleep 6
+            # Wait for the new container to report healthy (per the Dockerfile
+            # HEALTHCHECK that probes /status). Times out after ~150s to cover
+            # FAISS bootstrap + clause seed on a cold start.
+            echo "Waiting for api to become healthy..."
+            for i in $(seq 1 15); do
+              state=$(docker inspect --format '{{.State.Health.Status}}' lexara-api-api-1 2>/dev/null || echo "unknown")
+              if [ "$state" = "healthy" ]; then
+                echo "api is healthy after ${i} attempts"
+                break
+              fi
+              if [ "$i" -eq 15 ]; then
+                echo "api never became healthy (last state: $state) — dumping logs:"
+                docker compose logs --tail=100 api
+                exit 1
+              fi
+              sleep 10
+            done
+
+            # End-to-end check through Traefik / TLS.
             if ! curl -fsS --max-time 10 https://api.lexara.tech/status; then
-              echo "Smoke test failed — dumping last 100 lines of api logs:"
-              docker compose logs --tail=100 api
+              echo "Container is healthy but public endpoint failed — Traefik routing issue?"
+              docker compose logs --tail=50 api
               exit 1
             fi
             echo
