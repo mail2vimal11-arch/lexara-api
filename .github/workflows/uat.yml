@@ -1,0 +1,66 @@
+name: UAT
+
+# End-to-end UAT against the live LexAra deployment.
+# Runs Playwright (Chromium) against lexara.tech / api.lexara.tech, captures
+# a screenshot per step, and emits a .pptx report uploaded as a workflow
+# artifact. Trigger manually from the Actions UI or wait for the nightly run.
+#
+# Optional repository secrets to enable the authenticated flow:
+#   UAT_TEST_USER_EMAIL
+#   UAT_TEST_USER_PASSWORD
+# (the suite skips that case cleanly if either is missing)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Public site base URL"
+        default: "https://lexara.tech"
+        required: false
+      api_base_url:
+        description: "API base URL"
+        default: "https://api.lexara.tech"
+        required: false
+  schedule:
+    # 03:00 UTC nightly
+    - cron: "0 3 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  uat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: tests/uat/requirements.txt
+
+      - name: Install Python dependencies
+        run: pip install -r tests/uat/requirements.txt
+
+      - name: Install Playwright browser
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run UAT
+        env:
+          UAT_BASE_URL: ${{ github.event.inputs.base_url || 'https://lexara.tech' }}
+          UAT_API_BASE_URL: ${{ github.event.inputs.api_base_url || 'https://api.lexara.tech' }}
+          UAT_TEST_USER_EMAIL: ${{ secrets.UAT_TEST_USER_EMAIL }}
+          UAT_TEST_USER_PASSWORD: ${{ secrets.UAT_TEST_USER_PASSWORD }}
+          UAT_OUTPUT_DIR: qa-reports/${{ github.run_number }}
+          UAT_HEADLESS: "1"
+        run: python tests/uat/run_uat.py
+
+      - name: Upload UAT report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uat-report-${{ github.run_number }}
+          path: qa-reports/${{ github.run_number }}
+          retention-days: 30
