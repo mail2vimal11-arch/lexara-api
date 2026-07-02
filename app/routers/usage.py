@@ -24,13 +24,25 @@ ANALYSIS_ACTIONS = {
     "CONTRACT_EXTRACT_CLAUSES",
 }
 
-# Per-role quota defaults (mirrors billing plans without requiring a plan_id column)
-_ROLE_PLAN = {
-    "admin":       {"plan": "business",    "analyses_limit": -1,   "overage_cad": 0.00},
-    "procurement": {"plan": "starter",     "analyses_limit": 50,   "overage_cad": 0.12},
-    "legal":       {"plan": "growth",      "analyses_limit": 500,  "overage_cad": 0.10},
-}
-_DEFAULT_PLAN = {"plan": "free", "analyses_limit": 5, "overage_cad": 0.15}
+# Overage pricing per plan (CAD per analysis beyond the plan limit)
+_OVERAGE_CAD = {"free": 0.15, "starter": 0.12, "growth": 0.10, "business": 0.00}
+
+# Legacy fallback: users created before the plan_id column got a role-based plan
+_ROLE_FALLBACK_PLAN = {"admin": "business", "procurement": "starter", "legal": "growth"}
+
+
+def _resolve_plan(user) -> tuple[str, dict]:
+    """Resolve the user's billing plan.
+
+    plan_id is authoritative — it is what the Stripe webhooks write on
+    upgrade/downgrade (billing.py). Role is only a fallback for legacy rows
+    with no/unknown plan_id.
+    """
+    plan_id = getattr(user, "plan_id", None)
+    if plan_id in PLANS:
+        return plan_id, PLANS[plan_id]
+    fallback = _ROLE_FALLBACK_PLAN.get(user.role, "free")
+    return fallback, PLANS[fallback]
 
 
 @router.get("/usage")
@@ -42,7 +54,8 @@ async def get_usage(
     Return real usage and quota information for the authenticated user.
 
     Counts are drawn from the AuditLog for the current calendar month.
-    Quota limits are derived from the user's role.
+    Quota limits come from the user's billing plan (plan_id, kept in sync by
+    the Stripe webhooks); role is only a fallback for legacy accounts.
     """
     try:
         # Calendar-month window
@@ -62,10 +75,10 @@ async def get_usage(
             .count()
         )
 
-        # Plan info from role
-        plan_info = _ROLE_PLAN.get(current_user.role, _DEFAULT_PLAN)
+        # Plan info: plan_id (written by Stripe webhooks) first, role fallback
+        plan_id, plan_info = _resolve_plan(current_user)
         limit       = plan_info["analyses_limit"]
-        overage_cad = plan_info["overage_cad"]
+        overage_cad = _OVERAGE_CAD.get(plan_id, 0.15)
 
         if limit == -1:
             remaining = -1   # unlimited
@@ -76,7 +89,7 @@ async def get_usage(
             overage = round(overage_count * overage_cad, 2)
 
         return {
-            "plan": plan_info["plan"],
+            "plan": plan_id,
             "role": current_user.role,
             "analyses_used_this_month": analyses_this_month,
             "analyses_limit": limit,          # -1 = unlimited

@@ -14,8 +14,8 @@ Analyze contracts instantly with Claude AI. Extract risks, missing clauses, and 
 
 ```bash
 # Clone
-git clone https://github.com/YOUR_USERNAME/lexrisk-api.git
-cd lexrisk-api
+git clone https://github.com/mail2vimal11-arch/lexara-api.git
+cd lexara-api
 
 # Create virtual environment
 python -m venv venv
@@ -39,10 +39,12 @@ python -m uvicorn app.main:app --reload
 # Navigate to http://localhost:8000/docs for interactive API docs
 ```
 
-### Deploy to FastAPI.com
+### Deploy
 
 ```bash
-git push fastapi main
+# Automated: push to main → deploy.yml runs tests, builds the image to GHCR,
+# and rolls the api service on the VPS (deploy is gated on tests passing).
+# Manual fallback: see CLAUDE.md → Deploy Workflow.
 ```
 
 ---
@@ -52,7 +54,7 @@ git push fastapi main
 ### Analyze Contract
 
 ```bash
-curl -X POST https://api.lexrisk.com/v1/analyze \
+curl -X POST https://api.lexara.tech/v1/analyze \
   -H "Authorization: Bearer sk_live_abc123" \
   -H "Content-Type: application/json" \
   -d '{
@@ -85,7 +87,7 @@ curl -X POST https://api.lexrisk.com/v1/analyze \
 ### Extract Clauses
 
 ```bash
-curl -X POST https://api.lexrisk.com/v1/extract-clauses \
+curl -X POST https://api.lexara.tech/v1/extract-clauses \
   -H "Authorization: Bearer sk_live_abc123" \
   -d '{"text": "...", "clause_types": ["liability", "termination"]}'
 ```
@@ -93,7 +95,7 @@ curl -X POST https://api.lexrisk.com/v1/extract-clauses \
 ### Check Usage
 
 ```bash
-curl -X GET https://api.lexrisk.com/v1/usage \
+curl -X GET https://api.lexara.tech/v1/usage \
   -H "Authorization: Bearer sk_live_abc123"
 ```
 
@@ -106,7 +108,7 @@ curl -X GET https://api.lexrisk.com/v1/usage \
 - **Database:** PostgreSQL
 - **Cache:** Redis
 - **Billing:** Stripe
-- **Hosting:** FastAPI.com
+- **Hosting:** Docker Compose + Traefik on a VPS
 - **CI/CD:** GitHub Actions
 
 ---
@@ -157,9 +159,8 @@ MIT License — See [LICENSE](./LICENSE) for details
 
 ## 📞 Support
 
-- **Email:** support@lexrisk.com
-- **Discord:** [join.lexrisk.com](https://discord.gg/lexrisk)
-- **Docs:** [docs.lexrisk.com](https://docs.lexrisk.com)
+- **Email:** support@lexara.tech
+- **Docs:** [api.lexara.tech/docs](https://api.lexara.tech/docs)
 
 ---
 

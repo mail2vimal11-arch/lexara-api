@@ -1,5 +1,19 @@
 # PROJECT_STATUS.md
-_Single source of truth for parallel sessions. Updated 2026-05-03. All 4 waves complete. Production operational._
+_Single source of truth for parallel sessions. Updated 2026-06-04. All 4 waves complete. Production operational._
+
+---
+
+## 2026-06-04 — Pre-release hardening (PR #23, branch `claude/lexara-procurement-roles-WgnTh`)
+
+Pre-deploy QA pass (346 passed / 2 skipped / 0 failed) + all open QA defects fixed. See `ISSUES.md` → "Pre-Deploy QA Findings (QA-*)" and `docs/PREDEPLOY_QA_REPORT_2026-06-04.md`.
+
+- **QA-CI-1 (P1) fixed** — one gated deploy pipeline: `deploy.yml` tests → builds → deploys; `tests.yml` test-only.
+- **QA-DEP-1 (P1) fixed** — CVE bumps: fastapi 0.115.12/starlette 0.46.2, python-jose 3.5.0, python-multipart 0.0.20, pypdf 4.3.1, httpx 0.27.2. Suite green on new pins.
+- **QA-BUG-3 (P2) fixed** — `/v1/usage` quota now follows Stripe-written `plan_id`; role is legacy fallback only.
+- **CA-003 re-recorded** as WONT FIX (deliberate public checkout).
+- **Frontend** — `API_BASE` env-aware in all 5 pages; fixed wrong `api.lexara.ca` domain in negotiation-arena.html.
+- **Docs shipped:** role/gap analysis, 5-wave build plan, QA report (all in `docs/`).
+- **Still OPEN (deferred, non-blocking):** QA-ENV-1 (CI tooling: ruff/pytest-cov/pip-audit), QA-DEP-2 (pin ML stack + CPU torch wheels), FE-015 (cosmetic inline styles).
 
 ---
 

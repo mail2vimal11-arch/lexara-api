@@ -1,7 +1,7 @@
 """Application configuration and settings."""
 
 import logging
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -72,10 +72,11 @@ class Settings(BaseSettings):
     groq_model: str = "llama-3.1-8b-instant"
     use_groq: bool = False  # Set True to prefer Groq over Claude
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
 
 settings = Settings()

@@ -9,7 +9,7 @@ Live at **lexara.tech / api.lexara.tech**. Ontario / PIPEDA-focused.
 
 | Layer | Choice |
 |---|---|
-| Backend | FastAPI 0.109 + Python 3.11 |
+| Backend | FastAPI 0.115 + Python 3.11 |
 | Database | PostgreSQL 16 + SQLAlchemy 2.0 ORM |
 | Migrations | Alembic (`alembic revision --autogenerate -m "..."` → `alembic upgrade head`) |
 | Cache | Redis 7 |
@@ -73,17 +73,18 @@ Prompt formats differ per tier — don't mix them:
 
 ---
 
-## Current State (updated 2026-05-02)
+## Current State (updated 2026-06-04)
 
-**Highest priority — billing system incomplete:**
-- `app/routers/billing.py` has 6 TODOs: Stripe webhooks received but plan changes not written to DB
-- `app/routers/usage.py:30` returns hardcoded mock data instead of DB query
-- **Do not onboard paying users until these are resolved**
+**Billing system: functional.** Stripe webhooks write `plan_id` (CA-004), `/v1/usage` returns real counts (CA-005), and quota now follows `plan_id` — the webhook-written source of truth — with role only as a legacy fallback (QA-BUG-3, fixed 2026-06-04). `/v1/plans` + `/v1/checkout` are deliberately public for landing-page checkout (CA-003 → WONT FIX, accepted decision).
 
-**Recently shipped:**
+**Recently shipped (2026-06-04 pre-release hardening — see ISSUES.md QA-*):**
+- Single gated deploy pipeline: `deploy.yml` now tests → builds (GHCR) → deploys; `tests.yml` is test-only (QA-CI-1)
+- CVE dependency bumps: fastapi 0.115.12 / starlette 0.46.2, python-jose 3.5.0, python-multipart 0.0.20, pypdf 4.3.1, httpx 0.27.2 — full suite green on new pins (QA-DEP-1)
+- Quota follows Stripe `plan_id` (QA-BUG-3); Pydantic `model_config` migration; frontend `API_BASE` env-aware in all pages + fixed wrong `api.lexara.ca` domain in negotiation-arena.html
+
+**Previously shipped:**
 - Groq as primary free inference tier (`832dff3`)
 - SaulLM/HF as secondary tier (`36aa414`)
-- Automated deploy via GitHub Actions SSH (`tests.yml`)
 - HF warmer interval: 600s (was 240s)
 - 429 retry in `hf_llm_service.py`
 - Model attribution fix: response `model` field now uses `settings.hf_model_id`
@@ -98,7 +99,8 @@ Prompt formats differ per tier — don't mix them:
 ## Deploy Workflow
 
 ```bash
-# Automated: push to main → GitHub Actions runs tests → SSH deploy
+# Automated: push to main → deploy.yml runs tests → builds image to GHCR →
+# SSH deploy rolls the api service (deploy gated on tests; tests.yml is test-only)
 # Manual fallback:
 cd /opt/lexara-api
 git pull origin main

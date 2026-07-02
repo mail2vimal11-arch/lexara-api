@@ -23,7 +23,7 @@ _Sources: Code Audit (2026-05-02) · Frontend Audit (2026-05-02) · Production O
 |---|---|---|---|---|---|
 | CA-001 | `app/database/models.py:63` | `timedelta` not imported — every Analysis INSERT crashes at runtime | CA-018 | RESOLVED | Fixed in `app/models/billing.py` — commit de6b0a2 |
 | CA-002 | `app/database/models.py` + `app/models/user.py` | Two competing `User` ORM classes mapped to same `users` table — mapper collision, billing columns inaccessible | CA-003, CA-004, CA-005, CA-009, CA-018 | RESOLVED | Unified model in `app/models/user.py` with all auth + billing columns — commit de6b0a2. Prod migration SQL in commit message. |
-| CA-003 | `app/routers/billing.py:55–58,68–69` | `/v1/plans` and `/v1/checkout` are unauthenticated — any caller can create Stripe sessions | CA-004 | RESOLVED | `/v1/checkout` now requires `get_current_user`; user email derived from JWT, not request body |
+| CA-003 | `app/routers/billing.py:55–58,68–69` | `/v1/plans` and `/v1/checkout` are unauthenticated — any caller can create Stripe sessions | CA-004 | WONT FIX | **Accepted decision (recorded 2026-06-04, QA DOC-2):** `/v1/plans` and `/v1/checkout` are deliberately public to support landing-page checkout before signup (per billing.py docstring). Risk low — a checkout session charges nobody until Stripe payment completes and webhooks verify signatures. Prior note claiming auth was added was inaccurate. |
 | CA-004 | `app/routers/billing.py:165–194` | All four Stripe webhook handlers are no-ops — paying users never upgraded in DB | — | RESOLVED | All 4 handlers now perform real DB upserts via `db.query(User)` + `db.commit()`; `db=Depends(get_db)` added to webhook endpoint |
 | CA-005 | `app/routers/usage.py:31–42` | `/v1/usage` returns hardcoded fake data — quota enforcement impossible | — | RESOLVED | Real `func.count(Analysis.id)` query for current month; plan limits from `PLANS` dict; remaining quota computed |
 | CA-006 | `app/services/llm_service.py:142` | `content` variable may be unbound in `except json.JSONDecodeError` — masks real errors as `UnboundLocalError` | — | RESOLVED | `content = ""` initialised before try block — commit a4edf2f |
@@ -165,3 +165,22 @@ _Note: production is running pre-PR-17 code. Items marked "pending deploy" resol
 | UAT-013 | procurement.html loads | PASS | — | 200 |
 | UAT-014 | procurement-ai.html loads | PASS | — | 200 |
 | UAT-015 | procurement-intelligence.html loads | PASS | — | 200 |
+
+---
+
+## Pre-Deploy QA Findings (QA-*) — 2026-06-04
+
+_Source: `docs/PREDEPLOY_QA_REPORT_2026-06-04.md`. Fixes landed on `claude/lexara-procurement-roles-WgnTh` (PR #23)._
+
+| ID | Sev | Location | Title | Status | Resolution |
+|---|---|---|---|---|---|
+| QA-CI-1 | P1 | `.github/workflows/deploy.yml` + `tests.yml` | Two workflows both deploy on push to `main` with different strategies; `deploy.yml` had **no test gate** — failing tests could still deploy | RESOLVED | `deploy.yml` now runs the full pytest suite first (`build: needs: test`, `deploy: needs: build`); `tests.yml` reduced to test-only. One gated pipeline. |
+| QA-DEP-1 | P1 | `requirements.txt` | Known-CVE pins: python-jose 3.3.0 (CVE-2024-33663/4), python-multipart 0.0.6 (CVE-2024-24762/53981), starlette 0.35.1 via fastapi 0.109 (CVE-2024-47874), pypdf 4.1.0 | RESOLVED | Bumped: fastapi 0.115.12 (starlette 0.46.2), python-multipart 0.0.20, python-jose 3.5.0, pypdf 4.3.1, httpx 0.27.2. Full suite green on new pins. |
+| QA-BUG-3 | P2 | `app/routers/usage.py` | Quota derived from `user.role` while Stripe webhooks write `user.plan_id` — paid upgrades granted no quota change | RESOLVED | `/v1/usage` now resolves plan from `plan_id` (authoritative, webhook-written) via the `PLANS` dict; role used only as legacy fallback. |
+| QA-DOC-2 | P2 | `ISSUES.md` CA-003 | Tracker claimed `/v1/checkout` requires auth; code deliberately public | RESOLVED | CA-003 re-recorded as WONT FIX with the accepted-decision rationale. |
+| QA-FE-1 | P3 | `website/*` (5 files) | `API_BASE` hardcoded to prod — local dev hit production | RESOLVED | All five files now use the localhost-aware pattern (matching negotiation-arena.html). |
+| QA-FE-2 | P3 | `website/negotiation-arena.html:528` | Prod fallback pointed at wrong domain `api.lexara.ca` (should be `.tech`) — found during QA fix pass | RESOLVED | Corrected to `https://api.lexara.tech/v1`. |
+| QA-STYLE-1 | P3 | `app/config.py` | Pydantic v2 deprecation: class-based `Config` | RESOLVED | Migrated to `model_config = SettingsConfigDict(...)`. |
+| QA-DOC-3 | P3 | `README.md` | Stale refs: lexrisk.com URLs, `lexrisk-api` repo name, FastAPI.com deploy | RESOLVED | README updated to lexara.tech/api.lexara.tech and actual deploy flow. |
+| QA-ENV-1 | P2 | CI | No linter/type-check/coverage tooling; TEST_PLAN coverage targets unmeasurable | OPEN | Deferred — tooling addition, not a product bug. Recommend ruff + pytest-cov + pip-audit in `tests.yml`. |
+| QA-DEP-2 | P2 | `requirements.txt` | ML stack floats (`spacy>=3.7.0`) and pulls ~5.5GB CUDA wheels on CPU-only target | OPEN | Deferred — needs a deliberate pin + CPU-wheel index decision against the prod VPS; risky to change blind. |

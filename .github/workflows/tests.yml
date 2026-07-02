@@ -1,5 +1,8 @@
-name: Tests & Deploy
+name: Tests
 
+# Test-only. Deployment happens exclusively via deploy.yml, whose deploy job
+# is gated on its own test job (QA finding CI-1: previously both workflows
+# deployed on push to main with different strategies and no shared gate).
 on:
   push:
     branches: [main, develop]
@@ -42,22 +45,3 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           pytest tests/ -v --tb=short
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT || 22 }}
-          script: |
-            cd /opt/lexara-api
-            git pull origin main
-            docker compose build api
-            docker compose up -d --force-recreate api
