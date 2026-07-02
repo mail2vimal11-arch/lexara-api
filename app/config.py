@@ -39,7 +39,13 @@ class Settings(BaseSettings):
     stripe_price_business: str = "price_1TI9WgPGiwBBvDi6CwOp0cAu"
     
     # CORS
-    allowed_origins: str = "http://localhost:3000,https://lexrisk.com"
+    # Browser origins allowed by CORS. Must include every host the static
+    # site is served from — a missing origin fails preflight and surfaces in
+    # the browser as a bare network error ("Load failed"), not an HTTP status.
+    allowed_origins: str = (
+        "https://lexara.tech,https://www.lexara.tech,"
+        "http://localhost:3000,http://localhost:8080,http://127.0.0.1:5500"
+    )
     
     # Email
     smtp_server: Optional[str] = None
