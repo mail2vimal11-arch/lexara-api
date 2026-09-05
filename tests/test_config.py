@@ -34,3 +34,48 @@ class TestCorsOrigins:
         origins = _settings(allowed_origins=" https://a.example , ,").cors_origins()
         assert "https://a.example" in origins
         assert "" not in origins
+
+
+class TestSchemaReconcile:
+    """QA-BUG-5: prod `users` predates newer model columns; create_all never
+    adds columns to existing tables, so INSERTs 500'd in production only."""
+
+    def _drifted_engine(self, tmp_path):
+        from sqlalchemy import create_engine, text
+        eng = create_engine(f"sqlite:///{tmp_path}/drift.db")
+        with eng.begin() as conn:
+            # users as it existed at first deploy — no billing-era columns
+            conn.execute(text("""
+                CREATE TABLE users (
+                    id VARCHAR PRIMARY KEY,
+                    username VARCHAR NOT NULL,
+                    email VARCHAR NOT NULL,
+                    hashed_password VARCHAR NOT NULL,
+                    role VARCHAR
+                )"""))
+            conn.execute(text(
+                "INSERT INTO users (id, username, email, hashed_password, role) "
+                "VALUES ('u1', 'olduser', 'old@example.com', 'x', 'procurement')"))
+        return eng
+
+    def test_reconcile_adds_missing_columns_and_backfills(self, tmp_path):
+        from sqlalchemy import inspect, text
+        from app.database.session import reconcile_schema
+        eng = self._drifted_engine(tmp_path)
+
+        reconcile_schema(bind=eng)
+
+        cols = {c["name"] for c in inspect(eng).get_columns("users")}
+        assert {"plan_id", "stripe_customer_id", "is_active",
+                "created_at", "updated_at"} <= cols
+        with eng.connect() as conn:
+            row = conn.execute(text(
+                "SELECT plan_id, is_active FROM users WHERE id='u1'")).one()
+        assert row.plan_id == "free"        # scalar default backfilled
+        assert row.is_active in (True, 1)   # sqlite stores bool as int
+
+    def test_reconcile_is_idempotent(self, tmp_path):
+        from app.database.session import reconcile_schema
+        eng = self._drifted_engine(tmp_path)
+        reconcile_schema(bind=eng)
+        reconcile_schema(bind=eng)  # second run must be a clean no-op
