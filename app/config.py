@@ -46,6 +46,20 @@ class Settings(BaseSettings):
         "https://lexara.tech,https://www.lexara.tech,"
         "http://localhost:3000,http://localhost:8080,http://127.0.0.1:5500"
     )
+
+    def cors_origins(self) -> list[str]:
+        """ALLOWED_ORIGINS from the environment, plus the site's own origins.
+
+        The production domains are unioned in unconditionally: a stale
+        ALLOWED_ORIGINS in a deployment .env must never be able to lock the
+        site's own frontend out of the API (QA-BUG-4 regressed exactly this
+        way — the VPS .env still listed only the pre-rename domain).
+        """
+        env_origins = [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
+        for site_origin in ("https://lexara.tech", "https://www.lexara.tech"):
+            if site_origin not in env_origins:
+                env_origins.append(site_origin)
+        return env_origins
     
     # Email
     smtp_server: Optional[str] = None
