@@ -3,7 +3,9 @@
    Tab-based contract analysis hitting api.lexara.tech
    ============================================================ */
 
-const API_BASE = 'https://api.lexara.tech/v1';
+const API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ? "http://localhost:8000/v1"
+  : "https://api.lexara.tech/v1";
 
 function getAuthHeader() {
   const token = localStorage.getItem('pai_token');

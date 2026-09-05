@@ -136,7 +136,9 @@
 </div>
 
 <script>
-const API = "https://api.lexara.tech/v1";
+const API = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ? "http://localhost:8000/v1"
+  : "https://api.lexara.tech/v1";
 
 // Read ?mode= from URL to pick tab
 const urlMode = new URLSearchParams(window.location.search).get("mode");

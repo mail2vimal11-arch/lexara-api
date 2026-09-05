@@ -1,7 +1,7 @@
 """Application configuration and settings."""
 
 import logging
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,13 @@ class Settings(BaseSettings):
     stripe_price_business: str = "price_1TI9WgPGiwBBvDi6CwOp0cAu"
     
     # CORS
-    allowed_origins: str = "http://localhost:3000,https://lexrisk.com"
+    # Browser origins allowed by CORS. Must include every host the static
+    # site is served from — a missing origin fails preflight and surfaces in
+    # the browser as a bare network error ("Load failed"), not an HTTP status.
+    allowed_origins: str = (
+        "https://lexara.tech,https://www.lexara.tech,"
+        "http://localhost:3000,http://localhost:8080,http://127.0.0.1:5500"
+    )
     
     # Email
     smtp_server: Optional[str] = None
@@ -72,10 +78,11 @@ class Settings(BaseSettings):
     groq_model: str = "llama-3.1-8b-instant"
     use_groq: bool = False  # Set True to prefer Groq over Claude
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
 
 settings = Settings()

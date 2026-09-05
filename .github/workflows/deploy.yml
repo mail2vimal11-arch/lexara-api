@@ -26,7 +26,47 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # Deploy gate: no image is built or shipped unless the full suite passes.
+  # (QA finding CI-1 — this workflow previously deployed with no test gate,
+  # racing tests.yml which used a different deploy strategy.)
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost/lexrisk_test
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          pytest tests/ -v --tb=short
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     outputs:
       sha_short: ${{ steps.meta.outputs.sha_short }}
