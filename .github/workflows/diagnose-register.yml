@@ -1,0 +1,91 @@
+name: Diagnose live registration
+
+# One-off diagnostic for the live-site "Load failed" on Create Account.
+# Runs entirely against production from a GitHub runner: DNS, TLS, the
+# exact CORS preflight the browser sends, a real POST, and a headless
+# Chromium driving the actual page. Remove once the incident is closed.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: DNS and reachability
+        run: |
+          echo "== DNS A/AAAA for api.lexara.tech =="
+          dig +short A api.lexara.tech || true
+          dig +short AAAA api.lexara.tech || true
+          echo "== DNS A/AAAA for lexara.tech =="
+          dig +short A lexara.tech || true
+          dig +short AAAA lexara.tech || true
+          echo "== GET /status =="
+          curl -sS -o /dev/null -w 'status=%{http_code} time=%{time_total}s\n' --max-time 15 https://api.lexara.tech/status
+
+      - name: CORS preflight exactly as the browser sends it
+        run: |
+          curl -siS -X OPTIONS https://api.lexara.tech/v1/auth/register \
+            -H "Origin: https://lexara.tech" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: content-type" \
+            --max-time 15 | head -25
+
+      - name: Real registration POST (throwaway user)
+        run: |
+          U="diag_$(date +%s)"
+          echo "username=$U"
+          curl -siS -X POST https://api.lexara.tech/v1/auth/register \
+            -H "Origin: https://lexara.tech" \
+            -H "Content-Type: application/json" \
+            --max-time 30 \
+            -d "{\"username\":\"$U\",\"email\":\"$U@example.com\",\"password\":\"Diag12345!\",\"role\":\"procurement\"}" | head -25
+
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Drive the real page in Chromium
+        run: |
+          pip install -q playwright==1.47.0
+          playwright install --with-deps chromium > /dev/null
+          python - <<'EOF'
+          import time
+          from playwright.sync_api import sync_playwright
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch()
+              page = browser.new_page()
+              page.on("console", lambda m: print(f"[console:{m.type}] {m.text}"))
+              page.on("requestfailed", lambda r: print(f"[requestfailed] {r.method} {r.url} -> {r.failure}"))
+              page.on("response", lambda r: "api.lexara.tech" in r.url and print(f"[response] {r.status} {r.request.method} {r.url}"))
+
+              page.goto("https://lexara.tech/procurement-ai.html", wait_until="load", timeout=30000)
+
+              print("== fetch /status from page context ==")
+              print(page.evaluate("""() => fetch('https://api.lexara.tech/v1/../status')
+                  .then(r => 'status=' + r.status).catch(e => 'FETCH ERROR: ' + e.message)"""))
+
+              print("== register POST from page context ==")
+              u = f"diagpw_{int(time.time())}"
+              print(page.evaluate("""(u) => fetch('https://api.lexara.tech/v1/auth/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: u, email: u + '@example.com',
+                                          password: 'Diag12345!', role: 'procurement'})
+                  }).then(r => r.text().then(t => 'status=' + r.status + ' body=' + t.slice(0,200)))
+                    .catch(e => 'FETCH ERROR: ' + e.message)""", u))
+
+              print("== the actual form ==")
+              page.click("text=Register")
+              page.fill("#reg-username", f"diagui_{int(time.time())}")
+              page.fill("#reg-email", f"diagui_{int(time.time())}@example.com")
+              page.fill("#reg-password", "Diag12345!")
+              page.click("text=Create Account")
+              page.wait_for_timeout(8000)
+              print("on-page message:", repr(page.text_content("#reg-msg")))
+              browser.close()
+          EOF
