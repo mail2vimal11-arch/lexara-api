@@ -3,6 +3,19 @@ _Single source of truth for parallel sessions. Updated 2026-06-04. All 4 waves c
 
 ---
 
+## 2026-09-05 — Registration incident closed + password reset shipped
+
+- **QA-BUG-5 (P0) closed**: live "Load failed" was a prod-only 500 on register
+  (schema drift — no alembic, create_all never alters tables). Startup
+  `reconcile_schema()` now heals additively. User-confirmed fixed in prod.
+- **Forgot/reset password shipped**: `/v1/auth/forgot-password` +
+  `/v1/auth/reset-password` (stateless JWT reset tokens, 30-min TTL,
+  single-use via password-hash fingerprint; enumeration-safe). Email via
+  SMTP when configured, else reset link goes to server logs for the
+  operator. UI on auth.html (+ link from procurement-ai.html).
+- Temporary incident diagnostics removed (diagnose-register.yml workflow,
+  exception-class 500 details).
+
 ## 2026-06-04 — Pre-release hardening (PR #23, branch `claude/lexara-procurement-roles-WgnTh`)
 
 Pre-deploy QA pass (346 passed / 2 skipped / 0 failed) + all open QA defects fixed. See `ISSUES.md` → "Pre-Deploy QA Findings (QA-*)" and `docs/PREDEPLOY_QA_REPORT_2026-06-04.md`.

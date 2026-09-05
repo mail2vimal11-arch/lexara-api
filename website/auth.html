@@ -100,7 +100,37 @@
         <button class="auth-submit" onclick="doLogin()">Sign In →</button>
         <div class="auth-msg" id="login-msg"></div>
       </div>
+      <p class="auth-footer-note"><a href="#" onclick="showForgot();return false">Forgot password?</a></p>
       <p class="auth-footer-note">Don't have an account? <a href="#" onclick="switchTab('register');return false">Create one free →</a></p>
+    </div>
+
+    <!-- Forgot Password -->
+    <div id="form-forgot" style="display:none">
+      <div class="auth-form">
+        <div>
+          <label for="forgot-email">Email address</label>
+          <input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <button class="auth-submit" onclick="doForgot()">Send Reset Link →</button>
+        <div class="auth-msg" id="forgot-msg"></div>
+      </div>
+      <p class="auth-footer-note">Remembered it? <a href="#" onclick="switchTab('login');return false">Back to sign in →</a></p>
+    </div>
+
+    <!-- Reset Password (opened from the emailed link) -->
+    <div id="form-reset" style="display:none">
+      <div class="auth-form">
+        <div>
+          <label for="reset-password">New password</label>
+          <input type="password" id="reset-password" placeholder="at least 8 characters" autocomplete="new-password" />
+        </div>
+        <div>
+          <label for="reset-password2">Confirm new password</label>
+          <input type="password" id="reset-password2" placeholder="••••••••" autocomplete="new-password" />
+        </div>
+        <button class="auth-submit" onclick="doReset()">Set New Password →</button>
+        <div class="auth-msg" id="reset-msg"></div>
+      </div>
     </div>
 
     <!-- Register Form -->
@@ -146,8 +176,59 @@ const urlMode = new URLSearchParams(window.location.search).get("mode");
 function switchTab(tab) {
   document.getElementById("form-login").style.display    = tab === "login"    ? "" : "none";
   document.getElementById("form-register").style.display = tab === "register" ? "" : "none";
+  document.getElementById("form-forgot").style.display   = tab === "forgot"   ? "" : "none";
+  document.getElementById("form-reset").style.display    = tab === "reset"    ? "" : "none";
   document.getElementById("tab-login").classList.toggle("active",    tab === "login");
   document.getElementById("tab-register").classList.toggle("active", tab === "register");
+}
+
+function showForgot() { switchTab("forgot"); }
+
+async function doForgot() {
+  const email = document.getElementById("forgot-email").value.trim();
+  const msg   = document.getElementById("forgot-msg");
+  msg.textContent = "";
+  if (!email) { msg.className = "auth-msg error"; msg.textContent = "Please enter your email address."; return; }
+  try {
+    const res = await fetch(`${API}/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Request failed");
+    msg.className = "auth-msg success";
+    msg.textContent = "✓ " + data.message;
+  } catch(e) {
+    msg.className = "auth-msg error";
+    msg.textContent = e.message;
+  }
+}
+
+async function doReset() {
+  const p1  = document.getElementById("reset-password").value;
+  const p2  = document.getElementById("reset-password2").value;
+  const msg = document.getElementById("reset-msg");
+  const token = new URLSearchParams(window.location.search).get("reset_token");
+  msg.textContent = "";
+  if (p1.length < 8) { msg.className = "auth-msg error"; msg.textContent = "Password must be at least 8 characters."; return; }
+  if (p1 !== p2)     { msg.className = "auth-msg error"; msg.textContent = "Passwords don't match."; return; }
+  try {
+    const res = await fetch(`${API}/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, new_password: p1 }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Reset failed");
+    msg.className = "auth-msg success";
+    msg.textContent = "✓ " + data.message;
+    history.replaceState(null, "", window.location.pathname);  // drop the spent token from the URL
+    setTimeout(() => switchTab("login"), 1500);
+  } catch(e) {
+    msg.className = "auth-msg error";
+    msg.textContent = e.message;
+  }
 }
 
 async function doLogin() {
@@ -223,7 +304,13 @@ async function doRegister() {
 
 // Enter key support
 document.addEventListener("DOMContentLoaded", () => {
-  switchTab(urlMode === "register" ? "register" : "login");
+  // Emailed reset link lands here with ?reset_token= — takes priority over
+  // everything, including an existing session (user may be locked out).
+  if (new URLSearchParams(window.location.search).get("reset_token")) {
+    switchTab("reset");
+    return;
+  }
+  switchTab(urlMode === "forgot" ? "forgot" : urlMode === "register" ? "register" : "login");
 
   // If already logged in, redirect straight to demo
   if (localStorage.getItem("pai_token")) {
