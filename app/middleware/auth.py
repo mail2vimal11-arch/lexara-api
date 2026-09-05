@@ -33,6 +33,8 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         "/",
         "/v1/auth/register",
         "/v1/auth/login",
+        "/v1/auth/forgot-password",
+        "/v1/auth/reset-password",
         "/v1/plans",
         "/v1/checkout",
         "/v1/workbench/commodities",
